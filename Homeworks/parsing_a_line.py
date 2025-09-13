@@ -4,14 +4,14 @@ import pyparsing as pp
 def parse_command(text: str):
 
     command_name = pp.Word(pp.alphas)('name')
-    argument_name = pp.Word(pp.alphanums + '#')
+    argument_name = pp.Word(pp.alphanums + '#()+-@')
     comment_name = pp.Regex(r".+$")
-    # хотел restOfLine, но она захватывала даже пустую строку
 
-    full_argument_name = pp.ZeroOrMore(argument_name)('arg')
+    full_argument_name = argument_name + \
+        pp.ZeroOrMore(pp.Suppress(',') + argument_name)
 
     parse_module = command_name + \
-        full_argument_name + \
+        pp.Optional(full_argument_name)('arg') + \
         pp.Suppress(';') + \
         pp.Optional(comment_name)('comm')
 

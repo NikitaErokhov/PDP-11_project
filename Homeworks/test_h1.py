@@ -7,7 +7,7 @@ def space(text: str = ''):
 
 def simple_test():
     space('simple_test')
-    text = 'add R0 R1 ; сложение регистров R0 и R1, результат в R1'
+    text = 'add R0, R1 ; сложение регистров R0 и R1, результат в R1'
     # text = 'add R0 R1 ;'
 
     print('text: '+text+'\n')
@@ -17,7 +17,7 @@ def simple_test():
 
 def print_test():
     space('print_test')
-    text = 'add R0 R1 ; сложение регистров R0 и R1, результат в R1'
+    text = 'add R0, R1 ; сложение регистров R0 и R1, результат в R1'
     print('text: '+text+'\n')
     res = parse_command(text).as_dict()
     print_dict(res)
@@ -25,7 +25,7 @@ def print_test():
 
 def without_comment():
     space('without_comment')
-    text = 'add R0 R1;'
+    text = 'add R0, R1;'
     print('text: '+text+'\n')
     res = parse_command(text).as_dict()
     print_dict(res)
@@ -42,6 +42,14 @@ def without_args():
 def without_args_comment():
     space('without_args_comment')
     text = 'exit ;'
+    print('text: '+text+'\n')
+    res = parse_command(text).as_dict()
+    print_dict(res)
+
+
+def many_arguments():
+    space('many_arguments')
+    text = 'echo R0, R1, #2, @r9b, PriNtf() ; too many args'
     print('text: '+text+'\n')
     res = parse_command(text).as_dict()
     print_dict(res)
@@ -76,6 +84,7 @@ print_test()
 without_comment()
 without_args()
 without_args_comment()
+many_arguments()
 
 empty()
 without_ending()
