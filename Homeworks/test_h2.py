@@ -25,6 +25,12 @@ def spec_PC_SP_mult_test(test: bool = False):
     get_mode_reg_from_args(args, test)
 
 
+def spec_ASCII_mult_test(test: bool = False):
+    space('spec_ASCII_mult_test')
+    args = ['\'*', '\'a']
+    get_mode_reg_from_args(args, test)
+
+
 TEST = True
 
 test('simple_test', 'add R0, R1;', TEST)
@@ -38,5 +44,7 @@ test('mode_7_test', 'inc @2(R3);', TEST)
 
 spec_R7_mult_test(TEST)
 spec_PC_SP_mult_test(TEST)
+spec_ASCII_mult_test(TEST)
+
 
 space('EVERYTHINK IS OK')
