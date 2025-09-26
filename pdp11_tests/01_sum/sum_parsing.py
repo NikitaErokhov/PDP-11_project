@@ -29,11 +29,12 @@ with open(r'pdp11_tests\01_sum\01_sum.pdp') as file:
                 for arg in str_dict['arg']:
                     if arg[0] not in "rRpPSs":
                         commands.append('\t' + f'{int(arg[1:]):06o}'+"\n")
-                        programm_counter = f"{(int(programm_counter, 8) + 2):06o}"
+                        programm_counter = \
+                            f"{(int(programm_counter, 8) + 2):06o}"
         else:
             commands.append(programm_counter + ':\t')
             break
 
-with open(r'pdp11_tests\01_sum\01_sum.txt', mode='a') as file:
+with open(r'pdp11_tests\01_sum\01_sum.I', mode='a') as file:
     for str_ in commands:
         file.write(str_)
