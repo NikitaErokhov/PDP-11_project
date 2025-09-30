@@ -1,4 +1,4 @@
-from parsing_a_line import parse_command, print_dict, pp
+from Homeworks.h1_parsing_a_line import parse_command, print_dict, pp
 
 
 def space(text: str = ''):
