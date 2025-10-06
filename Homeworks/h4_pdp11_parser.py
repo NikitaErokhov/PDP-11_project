@@ -53,10 +53,13 @@ class PDP11_Parser:
         """
         Берет команду name с аргументами args.
         Возвращает список слов в виде строк, в которые они кодируются.
-        :param name: имя команды 'mov'
-        :param args: ['#2', 'R0']
+        :param name: имя команды 
+            'mov'
+        :param args: 
+            ['#2', 'R0']
         :param kwargs: прочий мусор, который нам не нужен
-        :return: ['012700', '000002']
+        :return: 
+            ['012700', '000002']
         """
         # Получили кодировку команды в 2-ой системе счисления
         code_n = recgnz_comm(name)
@@ -69,6 +72,11 @@ class PDP11_Parser:
         return [code_n,], parse_a
 
     def parse_programm(self, filename: str | Path):
+        """
+        Выполняет парсинг программы из filename и формурует строки для .o и .l файлов
+        :param filename: имя файла программы 
+            '01_sum.pdp'
+        """
         with open(filename) as file:
             for key in file:
                 key = key.rstrip()
