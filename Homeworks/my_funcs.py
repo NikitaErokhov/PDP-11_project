@@ -3,8 +3,13 @@ from re import VERBOSE
 
 
 def parse_comm(text: str):
-
-    command_name = pp.Word(pp.alphas) | pp.Keyword(". =")
+    """
+    Принимает строку с командой
+    Возвращает саму строку, а также выделенное имя команды, аргументы и комментарий
+    :param  text: строка с командой 'mov 	#2, R0;'
+    :return: {'name': 'mov', 'arg': ['#2', 'R0'], 'text': 'mov \t#2, R0;'}
+    """
+    command_name = pp.Word(pp.alphas) | pp.Keyword(". =")('pseudo')
     argument_name = pp.Word(pp.alphanums + '()@#\'')
     comment_name = pp.Regex(r".+$")
 
@@ -19,10 +24,18 @@ def parse_comm(text: str):
     result = parse_module.parseString(text).as_dict()
     if 'arg' not in result.keys():
         result['arg'] = []
+    result['text'] = text.strip()
     return result
 
 
 def recgnz_args(args: list[str]):
+    """
+    Принимает список имен аргументов
+    Возвращает для каждого отдельного аргумента
+    словарь с нумером моды и именем аргумента по порядку.
+    :param  args: список аргументов '['#2', 'R0']'
+    :return: [{'mode': ['2'], 'const': '2'}, {'mode': ['0'], 'reg': 'R0'}]
+    """
 
     res = []
     # Регистр Rn
@@ -82,6 +95,13 @@ def recgnz_args(args: list[str]):
 
 
 def recgnz_comm(text: str) -> str:
+    """
+    Принимает строку с именем команды
+    Возвращает для начало кодировки команды
+    :param  text: имя команды 'mov'
+    :return: '0001'
+    """
+
     comms_list = [
         pp.Keyword(". =").setParseAction(pp.replaceWith('')),
         pp.Regex(r"(mov) | (MOV)", flags=VERBOSE).setParseAction(
@@ -100,6 +120,12 @@ def recgnz_comm(text: str) -> str:
 
 
 def code_arg(arg_dict: dict) -> str:
+    """
+    Принимает словарь с ключами 'mode' и 'reg'|'const'|'simb'
+    Возвращает кодировку для аргумента
+    :param  text: словарь характеристик аргумента {'mode': ['2'], 'const': '2'}
+    :return: '010111'
+    """
 
     spec_reg_pc = pp.Regex(r"(pc) | (PC)", flags=VERBOSE)
     spec_reg_sp = pp.Regex(r"(sp) | (SP)", flags=VERBOSE)
@@ -124,6 +150,14 @@ def code_arg(arg_dict: dict) -> str:
 
 
 def recgnz_mode(arg: dict):
+    """
+    Принимает словарь с ключами 'mode' и 'reg'|'const'|'simb'
+    Возвращает если необходимо восьмеричные данные,
+    необходимые для реализации специфичной моды
+    Для моды 2 регистра R7 вернет восьмеричное представление константы
+    :param  text: словарь характеристик аргумента {'mode': ['2'], 'const': '2'}
+    :return: '000002'
+    """
     mode = int(arg['mode'][0])
     if 'reg' in arg.keys():
         pass
@@ -134,15 +168,15 @@ def recgnz_mode(arg: dict):
 
 
 def bin_to_oct(text: str):
+    """
+    Принимает строку с двоичным 16-бит числом
+    Возвращает число, где первый символ совпадает с первоым символом text,
+    а все последующие являются восьмеричным представлением соответствующий трёх двоичных битов.
+    :param  text: 16-битная строка '0001010111000000'
+    :return: '012700'
+    """
     if text == '':
         return ''
     res = text[0] + ''.join(
         [f"{int(text[i-3:i], 2):o}" for i in range(len(text), 1, -3)])[::-1]
     return f"{int(res):06}"
-
-
-# def bin_to_hex(text: str):
-#     if text == '':
-#         return ''
-#     res = f'{int(text[:8], 2):02x}' + f'{int(text[8:], 2):02x}'
-#     return res
