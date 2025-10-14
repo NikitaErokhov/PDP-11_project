@@ -2,7 +2,7 @@ import pyparsing as pp
 from re import VERBOSE
 
 
-def parse_comm(text: str):
+def parse_line(text: str):
     """
     Принимает строку с командой
     Возвращает саму строку, а также выделенное имя команды, аргументы и комментарий
@@ -12,6 +12,8 @@ def parse_comm(text: str):
         {'name': 'mov', 'arg': ['#2', 'R0'], 'text': 'mov \t#2, R0;'}
     """
     command_name = pp.Word(pp.alphas) | pp.Keyword(". =")('pseudo')
+    lable_name = pp.Word(pp.alphas)('lable')+pp.Suppress(':')
+
     argument_name = pp.Word(pp.alphanums + '()@#\'')
     comment_name = pp.Regex(r".+$")
 
@@ -20,11 +22,13 @@ def parse_comm(text: str):
 
     parse_module = command_name('name') +\
         pp.Optional(full_argument_name)('arg') +\
-        pp.Suppress(';') +\
+        pp.Optional(pp.Suppress(';')) +\
         pp.Optional(comment_name)('comm')
 
-    result = parse_module.parseString(text).as_dict()
-    if 'arg' not in result.keys():
+    full_parse_module = lable_name | parse_module
+
+    result = full_parse_module.parseString(text).as_dict()
+    if not result.get('arg') and not result.get('lable'):
         result['arg'] = []
     result['text'] = text.strip()
     return result
@@ -49,6 +53,8 @@ def recgnz_args(args: list[str]):
     const_name = pp.Word(pp.nums)
     # + символы ASCII
     simb_name = "\'" + pp.Word(pp.printables)("simb")
+    # имя метки
+    lable_name = pp.Word(pp.alphas)('lable')
 
     # для определения моды mmm
     modes_list = [
@@ -66,6 +72,7 @@ def recgnz_args(args: list[str]):
         ("(" + register_name + ")+").setParseAction(pp.replaceWith('2')),
         ("(" + register_name + ")").setParseAction(pp.replaceWith('1')),
         register_name.setParseAction(pp.replaceWith('0')),
+        lable_name.setParseAction(pp.replaceWith('lable'))
     ]
 
     modes_to_search = pp.MatchFirst(modes_list)('mode')
@@ -87,7 +94,9 @@ def recgnz_args(args: list[str]):
 
     mode_7 = pp.Suppress('@') + mode_6
 
-    names_to_search = mode_7 | mode_6 | full_reg_name | simb_name | const_name
+    lable_name = pp.Word(pp.alphas)('lable')
+
+    names_to_search = mode_7 | mode_6 | full_reg_name | simb_name | const_name | lable_name
 
     # перебираем каждый аргумент
     for arg in args:
@@ -116,6 +125,8 @@ def recgnz_comm(text: str) -> str:
             pp.replaceWith('1001')),
         pp.Regex(r"(add) | (ADD)", flags=VERBOSE).setParseAction(
             pp.replaceWith('0110')),
+        pp.Regex(r"(sob) | (SOB)", flags=VERBOSE).setParseAction(
+            pp.replaceWith('0111111')),
         pp.Regex(r"(halt) | (HALT)", flags=VERBOSE).setParseAction(
             pp.replaceWith('0'*16))
     ]
@@ -134,6 +145,8 @@ def code_arg(arg_dict: dict) -> str:
     :return: 
         '010111'
     """
+    if arg_dict.get('lable'):
+        return ''
 
     spec_reg_pc = pp.Regex(r"(pc) | (PC)", flags=VERBOSE)
     spec_reg_sp = pp.Regex(r"(sp) | (SP)", flags=VERBOSE)
@@ -168,10 +181,12 @@ def recgnz_mode(arg: dict):
     :return: 
         '000002'
     """
+    if arg.get('lable'):
+        return '', False
     mode = int(arg['mode'][0])
-    if 'reg' in arg.keys():
+    if arg.get('reg'):
         pass
-    if 'const' in arg.keys():
+    if arg.get('const'):
         if mode == 2:
             return f'{int(arg['const']):016b}', True
     return '', False

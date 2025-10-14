@@ -1,4 +1,4 @@
-from my_funcs import parse_comm, recgnz_comm, \
+from my_funcs import parse_line, recgnz_comm, \
     recgnz_args, bin_to_oct, code_arg, recgnz_mode
 
 # Список для формирования .l файла, здесь [строки .l файла по прорядку]
@@ -30,7 +30,7 @@ with open(r'pdp11_tests\01_sum\01_sum.pdp') as file:
         key = file.readline()
         if key:
             # В непустой лежит команда или проч. - парсим
-            str_dict = parse_comm(key)
+            str_dict = parse_line(key)
 
             # В каком адресе лежит какая команда
 
