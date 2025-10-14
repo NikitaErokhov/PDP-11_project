@@ -8,7 +8,7 @@ def parse_command(text: str):
     comment_name = pp.Regex(r".+$")
 
     full_argument_name = argument_name + \
-        pp.ZeroOrMore(pp.Suppress(',') + argument_name)
+        pp.Optional(pp.Suppress(','+pp.empty) + argument_name)
 
     parse_module = command_name + \
         pp.Optional(full_argument_name)('arg') + \

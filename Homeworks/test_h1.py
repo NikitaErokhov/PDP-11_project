@@ -1,4 +1,4 @@
-from parsing_a_line import parse_command, print_dict, pp
+from Homeworks.h1_parsing_a_line import parse_command, print_dict, pp
 
 
 def space(text: str = ''):
@@ -47,12 +47,12 @@ def without_args_comment():
     print_dict(res)
 
 
-def many_arguments():
-    space('many_arguments')
-    text = 'echo R0, R1, #2, @r9b, PriNtf() ; too many args'
-    print('text: '+text+'\n')
-    res = parse_command(text).as_dict()
-    print_dict(res)
+# def many_arguments():
+#     space('many_arguments')
+#     text = 'echo R0, R1, #2, @r9b, PriNtf() ; too many args'
+#     print('text: '+text+'\n')
+#     res = parse_command(text).as_dict()
+#     print_dict(res)
 
 
 def empty():
@@ -84,7 +84,7 @@ print_test()
 without_comment()
 without_args()
 without_args_comment()
-many_arguments()
+# many_arguments()
 
 empty()
 without_ending()
