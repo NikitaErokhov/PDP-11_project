@@ -56,7 +56,7 @@ class PDP11_Parser:
                         if plus_PC:
                             commands.append(bin_line)
 
-                elif str_dict.get('lable'):
+                if str_dict.get('lable'):
                     self.labels[str_dict['lable']] = {
                         "fileline_num": len(self.file_lines)-1, 
                         "programm_counter": self.programm_counter}

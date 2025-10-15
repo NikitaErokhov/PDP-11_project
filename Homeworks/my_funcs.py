@@ -13,6 +13,7 @@ def parse_line(text: str):
     """
     pseudo_comm_name = pp.Combine(pp.Literal(".") + pp.Optional(" ") +
                                   pp.Literal("=")).setParseAction(lambda t: ['.='])('pseudo')
+
     command_name = pp.Word(pp.alphas) | pseudo_comm_name
 
     lable_name = pp.Word(pp.alphas)('lable')+pp.Suppress(':')
@@ -23,12 +24,13 @@ def parse_line(text: str):
     full_argument_name = argument_name + \
         pp.Optional(pp.Suppress(','+pp.empty) + argument_name)
 
-    parse_module = command_name('name') +\
+    command_module = command_name('name') +\
         pp.Optional(full_argument_name)('arg') +\
-        pp.Optional(pp.Suppress(';')) +\
-        pp.Optional(comment_name)('comm')
+        pp.Optional(pp.Suppress(';')) 
 
-    full_parse_module = lable_name | parse_module
+    comment_module = comment_name('comm')
+
+    full_parse_module = pp.Optional(lable_name) + pp.Optional(command_module) + pp.Optional(comment_module)
 
     result = full_parse_module.parseString(text).as_dict()
     if not result.get('arg') and not result.get('lable'):
