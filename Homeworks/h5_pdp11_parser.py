@@ -52,8 +52,8 @@ class PDP11_Parser:
                     commands, arguments = self.code_command(name=str_dict['name'],
                                                             args=str_dict['arg'])
                     for arg_dict in arguments:
-                        bin_line, raise_PC = recgnz_mode(arg_dict)
-                        if raise_PC:
+                        bin_line, plus_PC = recgnz_mode(arg_dict)
+                        if plus_PC:
                             commands.append(bin_line)
 
                 elif str_dict.get('lable'):
@@ -147,8 +147,8 @@ class PDP11_Parser:
                 commands, arguments = self.code_command(name=str_dict['name'],
                                                         args=str_dict['arg'])
                 for arg_dict in arguments:
-                    bin_line, raise_PC = recgnz_mode(arg_dict)
-                    if raise_PC:
+                    bin_line, plus_PC = recgnz_mode(arg_dict)
+                    if plus_PC:
                         commands.append(bin_line)
             else:
                 commands = []
