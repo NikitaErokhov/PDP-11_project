@@ -13,11 +13,11 @@ def get_mode_reg_from_args(args: list[str], test: bool = False):
     modes_list = [
         ("@2(" + argument_name + ")").setParseAction(pp.replaceWith(7)),
         ("2(" + argument_name + ")").setParseAction(pp.replaceWith(6)),
-        ("#" + pp.Word(pp.nums)).setParseAction(pp.replaceWith("2 const")),
+        ("#" + pp.Word(pp.nums)).setParseAction(pp.replaceWith(2)),
         ("@#" + pp.Word(pp.nums)
-         ).setParseAction(pp.replaceWith("3 mem[mem[v]]")),
-        ("@" + pp.Word(pp.nums)).setParseAction(pp.replaceWith("7 mem[v]")),
-        pp.Word(pp.nums).setParseAction(pp.replaceWith("6 mem[v]")),
+         ).setParseAction(pp.replaceWith("3")),
+        ("@" + pp.Word(pp.nums)).setParseAction(pp.replaceWith(7)),
+        pp.Word(pp.nums).setParseAction(pp.replaceWith(7)),
         ("@-(" + argument_name + ")").setParseAction(pp.replaceWith(5)),
         ("-(" + argument_name + ")").setParseAction(pp.replaceWith(4)),
         ("@(" + argument_name + ")+").setParseAction(pp.replaceWith(3)),
@@ -47,7 +47,7 @@ def get_mode_reg_from_args(args: list[str], test: bool = False):
     for arg in args:
         val_mode = modes_to_search.parseString(arg)[0]
         val_name = value_name.parseString(arg)
-        result[''.join(val_name)] = val_mode
+        result[''.join(val_name)] = f"{int(val_mode):02o}"
         if (test):
             print(f"from {arg} get mode {val_mode} for {''.join(val_name)}")
 

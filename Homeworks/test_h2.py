@@ -1,5 +1,5 @@
-from arg_modes import get_mode_reg_from_args
-from parsing_a_line import parse_command, print_dict
+from Homeworks.h2_arg_modes import get_mode_reg_from_args
+from Homeworks.h1_parsing_a_line import parse_command, print_dict
 
 
 def space(text: str = ''):
@@ -31,7 +31,7 @@ def spec_ASCII_mult_test(test: bool = False):
     get_mode_reg_from_args(args, test)
 
 
-TEST = True
+TEST = False
 
 test('simple_test', 'add R0, R1;', TEST)
 test('mode_1_test', 'inc (r2);', TEST)
