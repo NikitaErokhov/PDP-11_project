@@ -19,7 +19,7 @@ class PDP11_Parser:
         # Адрес текущего блока
         self.curr_block = 0         # f'{:04x}'
         self.object_lines[self.curr_block] = list()
-        # Словарь для меток, собранных при прекомпиляции
+        # Словарь для меток, собранных при прекомпиляции, здесь (имя метки): [номер строки с меткой, programm_counter]
         self.labels = dict()
 
     def precompile(self, filename: str | Path):
@@ -57,8 +57,9 @@ class PDP11_Parser:
                             commands.append(bin_line)
 
                 elif str_dict.get('lable'):
-                    self.labels[str_dict['lable']] = [
-                        len(self.file_lines)-1, self.programm_counter]
+                    self.labels[str_dict['lable']] = {
+                        "fileline_num": len(self.file_lines)-1, 
+                        "programm_counter": self.programm_counter}
 
                 self.programm_counter += 2 * len(commands)
         self.programm_counter = 0
@@ -104,7 +105,7 @@ class PDP11_Parser:
         # Если попали на SOB
         if code_n == '0111111':
             N_shift = self.programm_counter+2 - \
-                self.labels[args[1]][1]
+                self.labels[args[1]]["programm_counter"]
             reg = recgnz_args([args[0]])
             code_R = code_arg(*reg)[3:]
             code_n += code_R

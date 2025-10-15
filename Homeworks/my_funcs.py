@@ -11,7 +11,6 @@ def parse_line(text: str):
     :return: 
         {'name': 'mov', 'arg': ['#2', 'R0'], 'text': 'mov \t#2, R0;'}
     """
-<<<<<<< HEAD
     pseudo_comm_name = pp.Combine(pp.Literal(".") + pp.Optional(" ") +
                                   pp.Literal("=")).setParseAction(lambda t: ['.='])('pseudo')
     command_name = pp.Word(pp.alphas) | pseudo_comm_name
@@ -19,12 +18,6 @@ def parse_line(text: str):
     lable_name = pp.Word(pp.alphas)('lable')+pp.Suppress(':')
 
     argument_name = pp.Word(pp.alphanums + '()@#\'+')
-=======
-    command_name = pp.Word(pp.alphas) | pp.Keyword(". =")('pseudo')
-    lable_name = pp.Word(pp.alphas)('lable')+pp.Suppress(':')
-
-    argument_name = pp.Word(pp.alphanums + '()@#\'')
->>>>>>> test_01
     comment_name = pp.Regex(r".+$")
 
     full_argument_name = argument_name + \
@@ -40,13 +33,9 @@ def parse_line(text: str):
     result = full_parse_module.parseString(text).as_dict()
     if not result.get('arg') and not result.get('lable'):
         result['arg'] = []
-<<<<<<< HEAD
 
     result['text'] = text.strip()
 
-=======
-    result['text'] = text.strip()
->>>>>>> test_01
     return result
 
 
