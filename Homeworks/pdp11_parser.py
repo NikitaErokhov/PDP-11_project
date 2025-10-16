@@ -1,7 +1,27 @@
+from dataclasses import dataclass
 from pathlib import Path
 import click
-from my_funcs import parse_line, recgnz_comm, \
+from my_funcs import parse_line, \
     recgnz_args, bin_to_oct, code_arg, recgnz_mode
+
+
+@dataclass
+class Command:
+    name: str
+    opcode: str
+    has_ss: bool = False
+    has_dd: bool = False
+    has_nn: bool = False
+    has_r: bool = False
+
+
+COMMANDS = {
+    'mov': Command(name='mov', opcode='0001', has_ss=True, has_dd=True),
+    'movb': Command(name='movb', opcode='1001', has_ss=True, has_dd=True),
+    'add': Command(name='add', opcode='0110', has_ss=True, has_dd=True),
+    'halt': Command(name='halt', opcode='0'*16),
+    'sob': Command(name='sob', opcode='0111111', has_nn=True, has_r=True)
+}
 
 
 class PDP11_Parser:
@@ -58,7 +78,7 @@ class PDP11_Parser:
 
                 if str_dict.get('lable'):
                     self.labels[str_dict['lable']] = {
-                        "fileline_num": len(self.file_lines)-1, 
+                        "fileline_num": len(self.file_lines)-1,
                         "programm_counter": self.programm_counter}
 
                 self.programm_counter += 2 * len(commands)
@@ -77,7 +97,7 @@ class PDP11_Parser:
     @classmethod
     def oct(cls, number: int,  width: int = 6):
         # TODO: потом что-то сделать с ширирой, чтобы байты печатать
-        return f"{number:06o}"
+        return f"{number:06o}" if width == 6 else f'{number:03o}'
 
     @classmethod
     def bin2hex(cls, str_binword: str) -> list[str]:
@@ -99,27 +119,40 @@ class PDP11_Parser:
         :return:
             ['012700', '000002']
         """
-        # Получили кодировку команды в 2-ой системе счисления
-        code_n = recgnz_comm(name)
+        # Получили информацию о нужной команде
+        command = COMMANDS[name]
 
-        # Если попали на SOB
-        if code_n == '0111111':
-            N_shift = self.programm_counter+2 - \
-                self.labels[args[1]]["programm_counter"]
+        code_n = command.opcode
+        # Инициировали кодировки аргументов
+        code_r = code_nn = code_ss = code_dd = ''
+
+        # Кодируем каждый тип
+        if command.has_r:
+            # R всегда первый
             reg = recgnz_args([args[0]])
-            code_R = code_arg(*reg)[3:]
-            code_n += code_R
-            code_NN = f'{N_shift//2:06b}'
-            code_n += code_NN
-            return [code_n], {}
+            code_r = code_arg(*reg)[3:]
 
-        # Получили dict-ы с ключом mode и ключом reg|const|simb соотв. аргументов
+        if command.has_nn:
+            # NN всегда последний
+            N_shift = self.programm_counter+2 - \
+                self.labels[args[-1]]["programm_counter"]
+            code_nn = f'{N_shift//2:06b}'
+
+        if command.has_dd:
+            # DD всегда последний
+            arg_dd = recgnz_args([args[-1]])
+            code_dd = code_arg(*arg_dd)
+
+        if command.has_ss:
+            # SS первый если нет R, второй если есть
+            arg_ss = recgnz_args([args[command.has_r]])
+            code_ss = code_arg(*arg_ss)
+
         parse_a = recgnz_args(args) if args else {}
-        # Конкатенируем аргументы к коду команды по порядку
-        for arg_dict in parse_a:
-            code_n += code_arg(arg_dict)
+        # Возможные варианты DD, SSDD, RSS, RDD, R, RNN или ничего
+        code_com = code_n + code_r + code_ss + code_dd + code_nn
 
-        return [code_n,], parse_a
+        return [code_com,], parse_a
 
     def code_pseudo_command(self, name: str, args: dict):
         """Разбираем псевдокоманду и выполняем ее."""
@@ -134,7 +167,7 @@ class PDP11_Parser:
     def code_programm(self):
         """
         Формурует строки для .o и .l файлов
-        :param filename: имя файла программы 
+        :param filename: имя файла программы
             '01_sum.pdp'
         """
         for str_dict in self.parsed_lines:

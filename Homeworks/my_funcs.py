@@ -26,11 +26,12 @@ def parse_line(text: str):
 
     command_module = command_name('name') +\
         pp.Optional(full_argument_name)('arg') +\
-        pp.Optional(pp.Suppress(';')) 
+        pp.Optional(pp.Suppress(';'))
 
     comment_module = comment_name('comm')
 
-    full_parse_module = pp.Optional(lable_name) + pp.Optional(command_module) + pp.Optional(comment_module)
+    full_parse_module = pp.Optional(
+        lable_name) + pp.Optional(command_module) + pp.Optional(comment_module)
 
     result = full_parse_module.parseString(text).as_dict()
     if not result.get('arg') and not result.get('lable'):
@@ -114,33 +115,33 @@ def recgnz_args(args: list[str]):
     return res
 
 
-def recgnz_comm(text: str) -> str:
-    """
-    Принимает строку с именем команды
-    Возвращает для начало кодировки команды
-    :param  text: имя команды 
-        'mov'
-    :return: 
-        '0001'
-    """
+# def recgnz_comm(text: str) -> str:
+#     """
+#     Принимает строку с именем команды
+#     Возвращает для начало кодировки команды
+#     :param  text: имя команды
+#         'mov'
+#     :return:
+#         '0001'
+#     """
 
-    comms_list = [
-        pp.Keyword(". =").setParseAction(pp.replaceWith('')),
-        pp.Regex(r"(mov) | (MOV)", flags=VERBOSE).setParseAction(
-            pp.replaceWith('0001')),
-        pp.Regex(r"(movb) | (MOVB)", flags=VERBOSE).setParseAction(
-            pp.replaceWith('1001')),
-        pp.Regex(r"(add) | (ADD)", flags=VERBOSE).setParseAction(
-            pp.replaceWith('0110')),
-        pp.Regex(r"(sob) | (SOB)", flags=VERBOSE).setParseAction(
-            pp.replaceWith('0111111')),
-        pp.Regex(r"(halt) | (HALT)", flags=VERBOSE).setParseAction(
-            pp.replaceWith('0'*16))
-    ]
+#     comms_list = [
+#         pp.Keyword(". =").setParseAction(pp.replaceWith('')),
+#         pp.Regex(r"(mov) | (MOV)", flags=VERBOSE).setParseAction(
+#             pp.replaceWith('0001')),
+#         pp.Regex(r"(movb) | (MOVB)", flags=VERBOSE).setParseAction(
+#             pp.replaceWith('1001')),
+#         pp.Regex(r"(add) | (ADD)", flags=VERBOSE).setParseAction(
+#             pp.replaceWith('0110')),
+#         pp.Regex(r"(sob) | (SOB)", flags=VERBOSE).setParseAction(
+#             pp.replaceWith('0111111')),
+#         pp.Regex(r"(halt) | (HALT)", flags=VERBOSE).setParseAction(
+#             pp.replaceWith('0'*16))
+#     ]
 
-    comms_to_search = pp.MatchFirst(comms_list)
+#     comms_to_search = pp.MatchFirst(comms_list)
 
-    return comms_to_search.parse_string(text)[0]
+#     return comms_to_search.parse_string(text)[0]
 
 
 def code_arg(arg_dict: dict) -> str:
