@@ -23,6 +23,9 @@ COMMANDS = {
     'halt': Command(name='halt', opcode='0'*16),
     'sob': Command(name='sob', opcode='0111111', has_nn=True, has_r=True),
     'br': Command(name='br', opcode='00000001', has_xx=True),
+    'clr': Command(name='clr', opcode='0000101000', has_dd=True),
+    'beq': Command(name='beq', opcode='00000011', has_xx=True),
+
 }
 
 
@@ -107,10 +110,12 @@ class PDP11_Parser:
         :param width: длина результата
             8
         :return: 11111101"""
+
         result = f'{abs(number):0{width}b}'
+
         if number < 0:
-            x_unsigned = (1 << width) - number
-            result = f'{x_unsigned:{width}b}'[1:]
+            number_unsigned = (1 << width) + number
+            result = f'{number_unsigned:{width}b}'
 
         return result
 
@@ -181,7 +186,7 @@ class PDP11_Parser:
                 - self.programm_counter - 2
             code_xx = self.bin(N_shift//2, width=8)
 
-        # Возможные варианты DD, SSDD, RSS, RDD, R, RNN, XX или ничего
+        # Возможные варианты DD, SSDD, RSS, RDD, R, RNN, XX, NN или ничего
         code_com = code_n + code_r + code_ss + code_dd + code_nn + code_xx
         return [code_com,], parse_a
 
