@@ -79,8 +79,8 @@ class PDP11_Parser:
                         if plus_PC:
                             commands.append(bin_line)
 
-                if str_dict.get('lable'):
-                    self.labels[str_dict['lable']] = {
+                if str_dict.get('label'):
+                    self.labels[str_dict['label']] = {
                         "fileline_num": len(self.file_lines)-1,
                         "programm_counter": self.programm_counter}
 
@@ -107,24 +107,10 @@ class PDP11_Parser:
         :param width: длина результата
             8
         :return: 11111101"""
-        # Раньше использовал
-        # string = result = f'{abs(number):0{width}b}' if width == 8 else f'{abs(number):06b}',
-        # но вроде этот вариант c {width} работает
-        string = result = f'{abs(number):0{width}b}'
+        result = f'{abs(number):0{width}b}'
         if number < 0:
-            # Инвертируем число
-            string = string.replace('0', 'a').replace(
-                '1', '0').replace('a', '1')
-            result = ''
-            # Прибавляем бит 1
-            plus_bit = 1
-            i = len(string)
-            while plus_bit != 0:
-                i -= 1
-                result += str((int(string[i]) + plus_bit) % 2)
-                plus_bit = 1 if string[i] == '1' else 0
-
-            result = string[:i] + result[::-1]
+            x_unsigned = (1 << width) - number
+            result = f'{x_unsigned:{width}b}'[1:]
 
         return result
 
@@ -141,7 +127,7 @@ class PDP11_Parser:
         return [f"{int(str_binword[8:], 2):02x}\n",
                 f'{int(str_binword[:8], 2):02x}\n']
 
-    def code_command(self, name: str, args: list[str] = list(), precompile: bool = False, ** kwargs):
+    def code_command(self, name: str, args: list[str] | None = None, precompile: bool = False, ** kwargs):
         """
         Берет команду name с аргументами args.
         Возвращает список слов в виде строк, в которые они кодируются.
@@ -155,6 +141,7 @@ class PDP11_Parser:
         """
         # Получили информацию о нужной команде
         command = COMMANDS[name]
+        args = args or []
         parse_a = recgnz_args(args) if args else {}
 
         # Кодирование комманд при прекоспиляции излишне

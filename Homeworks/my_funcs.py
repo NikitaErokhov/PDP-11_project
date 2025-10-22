@@ -16,7 +16,7 @@ def parse_line(text: str):
 
     command_name = pp.Word(pp.alphas) | pseudo_comm_name
 
-    lable_name = pp.Word(pp.alphas)('lable')+pp.Suppress(':')
+    label_name = pp.Word(pp.alphas)('label')+pp.Suppress(':')
 
     argument_name = pp.Word(pp.alphanums + '()@#\'+')
     comment_name = pp.Regex(r".+$")
@@ -31,10 +31,10 @@ def parse_line(text: str):
     comment_module = comment_name('comm')
 
     full_parse_module = pp.Optional(
-        lable_name) + pp.Optional(command_module) + pp.Optional(comment_module)
+        label_name) + pp.Optional(command_module) + pp.Optional(comment_module)
 
     result = full_parse_module.parseString(text).as_dict()
-    if not result.get('arg') and not result.get('lable'):
+    if not result.get('arg') and not result.get('label'):
         result['arg'] = []
 
     result['text'] = text.strip()
@@ -62,7 +62,8 @@ def recgnz_args(args: list[str]):
     # + символы ASCII
     simb_name = "\'" + pp.Word(pp.printables)("simb")
     # имя метки
-    lable_name = pp.Word(pp.alphas)('lable')
+    label_name = pp.Combine(
+        pp.Char(pp.alphas) + pp.Optional(pp.Word(pp.alphas + pp.nums + "_")))('label')
 
     # для определения моды mmm
     modes_list = [
@@ -80,7 +81,7 @@ def recgnz_args(args: list[str]):
         ("(" + register_name + ")+").setParseAction(pp.replaceWith('2')),
         ("(" + register_name + ")").setParseAction(pp.replaceWith('1')),
         register_name.setParseAction(pp.replaceWith('0')),
-        lable_name.setParseAction(pp.replaceWith('lable'))
+        label_name.setParseAction(pp.replaceWith('lable'))
     ]
 
     modes_to_search = pp.MatchFirst(modes_list)('mode')
@@ -102,9 +103,10 @@ def recgnz_args(args: list[str]):
 
     mode_7 = pp.Suppress('@') + mode_6
 
-    lable_name = pp.Word(pp.alphas)('lable')
+    label_name = pp.Combine(
+        pp.Char(pp.alphas) + pp.Optional(pp.Word(pp.alphas + pp.nums + "_")))('label')
 
-    names_to_search = mode_7 | mode_6 | full_reg_name | simb_name | const_name | lable_name
+    names_to_search = mode_7 | mode_6 | full_reg_name | simb_name | const_name | label_name
 
     # перебираем каждый аргумент
     for arg in args:
@@ -153,7 +155,7 @@ def code_arg(arg_dict: dict) -> str:
     :return:
         '010111'
     """
-    if arg_dict.get('lable'):
+    if arg_dict.get('label'):
         return ''
 
     spec_reg_pc = pp.Regex(r"(pc) | (PC)", flags=VERBOSE)
@@ -189,7 +191,7 @@ def recgnz_mode(arg: dict):
     :return:
         '000002'
     """
-    if arg.get('lable'):
+    if arg.get('label'):
         return '', False
     mode = int(arg['mode'][0])
     if arg.get('reg'):
