@@ -11,18 +11,21 @@ def parse_line(text: str):
     :return:
         {'name': 'mov', 'arg': ['#2', 'R0'], 'text': 'mov \t#2, R0;'}
     """
-    pseudo_comm_name = pp.Combine(pp.Literal(".") + pp.Optional(" ") +
-                                  pp.Literal("=")).setParseAction(lambda t: ['.='])('pseudo')
+    # pseudo_comm_name = pp.Combine(pp.Literal(".") + pp.Optional(" ") +
+    #                               pp.Literal("=")).setParseAction(lambda t: ['.='])('pseudo')
+
+    pseudo_comm_name = pp.Combine(pp.Literal(
+        ".") + (pp.Literal('=') | pp.Word(pp.alphas)))('pseudo')
 
     command_name = pp.Word(pp.alphas) | pseudo_comm_name
 
     label_name = pp.Word(pp.alphas)('label')+pp.Suppress(':')
 
-    argument_name = pp.Word(pp.alphanums + '()@#\'+')
+    argument_name = pp.Word(pp.alphanums + '-()@#\'+')
     comment_name = pp.Regex(r".+$")
 
     full_argument_name = argument_name + \
-        pp.Optional(pp.Suppress(','+pp.empty) + argument_name)
+        pp.ZeroOrMore(pp.Suppress(',') + argument_name)
 
     command_module = command_name('name') +\
         pp.Optional(full_argument_name)('arg') +\
@@ -58,7 +61,7 @@ def recgnz_args(args: list[str]):
     register_name = pp.Regex(
         r"""(([rR]+[0-7]))|(pc) | (PC)|(sp) | (SP)""", flags=VERBOSE)
     # константа #n
-    const_name = pp.Word(pp.nums)
+    const_name = pp.Word(pp.alphanums)
     # + символы ASCII
     simb_name = "\'" + pp.Word(pp.printables)("simb")
     # имя метки
@@ -74,14 +77,14 @@ def recgnz_args(args: list[str]):
         ("#" + const_name).setParseAction(pp.replaceWith('2')),
         ("@#" + const_name).setParseAction(pp.replaceWith('3')),
         ("@" + const_name).setParseAction(pp.replaceWith('7')),
-        const_name.setParseAction(pp.replaceWith('6')),
         ("@-(" + register_name + ")").setParseAction(pp.replaceWith('5')),
         ("-(" + register_name + ")").setParseAction(pp.replaceWith('4')),
         ("@(" + register_name + ")+").setParseAction(pp.replaceWith('3')),
         ("(" + register_name + ")+").setParseAction(pp.replaceWith('2')),
         ("(" + register_name + ")").setParseAction(pp.replaceWith('1')),
         register_name.setParseAction(pp.replaceWith('0')),
-        label_name.setParseAction(pp.replaceWith('lable'))
+        label_name.setParseAction(pp.replaceWith('-')),
+        const_name.setParseAction(pp.replaceWith('6')),
     ]
 
     modes_to_search = pp.MatchFirst(modes_list)('mode')
@@ -95,9 +98,6 @@ def recgnz_args(args: list[str]):
         register_name +\
         pp.Optional(pp.Suppress(pp.Word('+)')))
 
-    const_name = pp.Suppress(pp.Optional(pp.Word('#@'))
-                             ) + pp.Word(pp.nums)("const")
-
     mode_6 = pp.Word(pp.nums)('shift') +\
         pp.Suppress("(") + register_name + pp.Suppress(")")
 
@@ -106,14 +106,16 @@ def recgnz_args(args: list[str]):
     label_name = pp.Combine(
         pp.Char(pp.alphas) + pp.Optional(pp.Word(pp.alphas + pp.nums + "_")))('label')
 
-    names_to_search = mode_7 | mode_6 | full_reg_name | simb_name | const_name | label_name
+    const_name = pp.Suppress(pp.Optional(pp.Word('#@'))
+                             ) + (pp.Word(pp.nums)("const") | label_name('variable'))
+
+    names_to_search = mode_7 | mode_6 | full_reg_name | simb_name | label_name | const_name
 
     # перебираем каждый аргумент
     for arg in args:
         val_name = names_to_search.parseString(arg).as_dict()
         val_mode = modes_to_search.parseString(arg).as_dict()
         res.append({**val_mode, **val_name})
-
     return res
 
 
@@ -155,7 +157,7 @@ def code_arg(arg_dict: dict) -> str:
     :return:
         '010111'
     """
-    if arg_dict.get('label'):
+    if arg_dict.get('label') or arg_dict.get('variable'):
         return ''
 
     spec_reg_pc = pp.Regex(r"(pc) | (PC)", flags=VERBOSE)
@@ -199,21 +201,24 @@ def recgnz_mode(arg: dict):
     if arg.get('const'):
         if mode == 2:
             return f'{int(arg['const']):016b}', True
+    if arg.get('variable'):
+        # Для прекомпиляции когда все переменные могут быть до конца неизвестны
+        return f'{0: 016b}', True
     return '', False
 
 
-def bin_to_oct(text: str):
-    """
-    Принимает строку с двоичным 16-бит числом
-    Возвращает число, где первый символ совпадает с первоым символом text,
-    а все последующие являются восьмеричным представлением соответствующий трёх двоичных битов.
-    :param  text: 16-битная строка
-        '0001010111000000'
-    :return:
-        '012700'
-    """
-    if text == '':
-        return ''
-    res = text[0] + ''.join(
-        [f"{int(text[i-3:i], 2):o}" for i in range(len(text), 1, -3)])[::-1]
-    return f"{int(res):06}"
+# def bin_to_oct(text: str):
+#     """
+#     Принимает строку с двоичным 16-бит числом
+#     Возвращает число, где первый символ совпадает с первоым символом text,
+#     а все последующие являются восьмеричным представлением соответствующий трёх двоичных битов.
+#     :param  text: 16-битная строка
+#         '0001010111000000'
+#     :return:
+#         '012700'
+#     """
+#     if text == '':
+#         return ''
+#     res = text[0] + ''.join(
+#         [f"{int(text[i-3:i], 2):o}" for i in range(len(text), 1, -3)])[::-1]
+#     return f"{int(res):06}"
