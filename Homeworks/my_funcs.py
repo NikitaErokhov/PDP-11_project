@@ -119,35 +119,6 @@ def recgnz_args(args: list[str]):
     return res
 
 
-# def recgnz_comm(text: str) -> str:
-#     """
-#     Принимает строку с именем команды
-#     Возвращает для начало кодировки команды
-#     :param  text: имя команды
-#         'mov'
-#     :return:
-#         '0001'
-#     """
-
-#     comms_list = [
-#         pp.Keyword(". =").setParseAction(pp.replaceWith('')),
-#         pp.Regex(r"(mov) | (MOV)", flags=VERBOSE).setParseAction(
-#             pp.replaceWith('0001')),
-#         pp.Regex(r"(movb) | (MOVB)", flags=VERBOSE).setParseAction(
-#             pp.replaceWith('1001')),
-#         pp.Regex(r"(add) | (ADD)", flags=VERBOSE).setParseAction(
-#             pp.replaceWith('0110')),
-#         pp.Regex(r"(sob) | (SOB)", flags=VERBOSE).setParseAction(
-#             pp.replaceWith('0111111')),
-#         pp.Regex(r"(halt) | (HALT)", flags=VERBOSE).setParseAction(
-#             pp.replaceWith('0'*16))
-#     ]
-
-#     comms_to_search = pp.MatchFirst(comms_list)
-
-#     return comms_to_search.parse_string(text)[0]
-
-
 def code_arg(arg_dict: dict) -> str:
     """
     Принимает словарь с ключами 'mode' и 'reg'|'const'|'simb'
@@ -199,26 +170,8 @@ def recgnz_mode(arg: dict):
     if arg.get('reg'):
         pass
     if arg.get('const'):
-        if mode == 2:
-            return f'{int(arg['const']):016b}', True
+        return f'{int(arg['const']):016b}', True
     if arg.get('variable'):
         # Для прекомпиляции когда все переменные могут быть до конца неизвестны
         return f'{0: 016b}', True
     return '', False
-
-
-# def bin_to_oct(text: str):
-#     """
-#     Принимает строку с двоичным 16-бит числом
-#     Возвращает число, где первый символ совпадает с первоым символом text,
-#     а все последующие являются восьмеричным представлением соответствующий трёх двоичных битов.
-#     :param  text: 16-битная строка
-#         '0001010111000000'
-#     :return:
-#         '012700'
-#     """
-#     if text == '':
-#         return ''
-#     res = text[0] + ''.join(
-#         [f"{int(text[i-3:i], 2):o}" for i in range(len(text), 1, -3)])[::-1]
-#     return f"{int(res):06}"
