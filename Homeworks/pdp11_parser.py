@@ -163,7 +163,7 @@ class PDP11_Parser:
             # Если есть такая метка
             if self.labels.get(arg['variable']):
                 value = self.labels[arg['variable']]["programm_counter"]
-                arg['const'] = str(value)
+                arg['const'] = str(oct(value)[2:])
                 arg.pop('variable')
 
     def code_command(self, name: str, args: list[str] | None = None, precompile: bool = False, ** kwargs):
@@ -187,7 +187,6 @@ class PDP11_Parser:
         # Разбираем переменные только при компиляции
         if not precompile:
             self.resolve_args(parsed_args)
-
         code_n = command.opcode
 
         # Инициировали кодировки аргументов

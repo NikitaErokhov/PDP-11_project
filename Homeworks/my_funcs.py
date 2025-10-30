@@ -11,8 +11,6 @@ def parse_line(text: str):
     :return:
         {'name': 'mov', 'arg': ['#2', 'R0'], 'text': 'mov \t#2, R0;'}
     """
-    # pseudo_comm_name = pp.Combine(pp.Literal(".") + pp.Optional(" ") +
-    #                               pp.Literal("=")).setParseAction(lambda t: ['.='])('pseudo')
 
     pseudo_comm_name = pp.Combine(pp.Literal(
         ".") + (pp.Literal('=') | pp.Word(pp.alphas)))('pseudo')
@@ -61,7 +59,7 @@ def recgnz_args(args: list[str]):
     register_name = pp.Regex(
         r"""(([rR]+[0-7]))|(pc) | (PC)|(sp) | (SP)""", flags=VERBOSE)
     # константа #n
-    const_name = pp.Word(pp.alphanums)
+    const_name = pp.Optional('-') + pp.Word(pp.alphanums)
     # + символы ASCII
     simb_name = "\'" + pp.Word(pp.printables)("simb")
     # имя метки
@@ -107,7 +105,7 @@ def recgnz_args(args: list[str]):
         pp.Char(pp.alphas) + pp.Optional(pp.Word(pp.alphas + pp.nums + "_")))('label')
 
     const_name = pp.Suppress(pp.Optional(pp.Word('#@'))
-                             ) + (pp.Word(pp.nums)("const") | label_name('variable'))
+                             ) + (pp.Combine(pp.Optional('-') + pp.Word(pp.nums))("const") | label_name('variable'))
 
     names_to_search = mode_7 | mode_6 | full_reg_name | simb_name | label_name | const_name
 
@@ -169,8 +167,18 @@ def recgnz_mode(arg: dict):
     mode = int(arg['mode'][0])
     if arg.get('reg'):
         pass
+
     if arg.get('const'):
-        return f'{int(arg['const']):016b}', True
+        number = int(arg['const'], 8)
+        width = 16
+        result = f'{abs(number):0{width}b}'
+
+        if number < 0:
+            number_unsigned = (1 << width) + number
+            result = f'{number_unsigned:{width}b}'
+
+        return result, True
+
     if arg.get('variable'):
         # Для прекомпиляции когда все переменные могут быть до конца неизвестны
         return f'{0: 016b}', True
