@@ -2,31 +2,44 @@ import pyparsing as pp
 from re import VERBOSE
 
 
-def parse_comm(text: str):
+def parse_line(text: str):
     """
     Принимает строку с командой
     Возвращает саму строку, а также выделенное имя команды, аргументы и комментарий
-    :param  text: строка с командой 
+    :param  text: строка с командой
         'mov 	#2, R0;'
-    :return: 
+    :return:
         {'name': 'mov', 'arg': ['#2', 'R0'], 'text': 'mov \t#2, R0;'}
     """
-    command_name = pp.Word(pp.alphas) | pp.Keyword(". =")('pseudo')
-    argument_name = pp.Word(pp.alphanums + '()@#\'')
+
+    pseudo_comm_name = pp.Combine(pp.Literal(
+        ".") + (pp.Literal('=') | pp.Word(pp.alphas)))('pseudo')
+
+    command_name = pp.Word(pp.alphas) | pseudo_comm_name
+
+    label_name = pp.Word(pp.alphas)('label')+pp.Suppress(':')
+
+    argument_name = pp.Word(pp.alphanums + '-()@#\'+')
     comment_name = pp.Regex(r".+$")
 
     full_argument_name = argument_name + \
-        pp.Optional(pp.Suppress(','+pp.empty) + argument_name)
+        pp.ZeroOrMore(pp.Suppress(',') + argument_name)
 
-    parse_module = command_name('name') +\
+    command_module = command_name('name') +\
         pp.Optional(full_argument_name)('arg') +\
-        pp.Suppress(';') +\
-        pp.Optional(comment_name)('comm')
+        pp.Optional(pp.Suppress(';'))
 
-    result = parse_module.parseString(text).as_dict()
-    if 'arg' not in result.keys():
+    comment_module = comment_name('comm')
+
+    full_parse_module = pp.Optional(
+        label_name) + pp.Optional(command_module) + pp.Optional(comment_module)
+
+    result = full_parse_module.parseString(text).as_dict()
+    if not result.get('arg') and not result.get('label'):
         result['arg'] = []
+
     result['text'] = text.strip()
+
     return result
 
 
@@ -35,9 +48,9 @@ def recgnz_args(args: list[str]):
     Принимает список имен аргументов
     Возвращает для каждого отдельного аргумента
     словарь с нумером моды и именем аргумента по порядку.
-    :param  args: список аргументов 
+    :param  args: список аргументов
         '['#2', 'R0']'
-    :return: 
+    :return:
         [{'mode': ['2'], 'const': '2'}, {'mode': ['0'], 'reg': 'R0'}]
     """
 
@@ -46,9 +59,12 @@ def recgnz_args(args: list[str]):
     register_name = pp.Regex(
         r"""(([rR]+[0-7]))|(pc) | (PC)|(sp) | (SP)""", flags=VERBOSE)
     # константа #n
-    const_name = pp.Word(pp.nums)
+    const_name = pp.Optional('-') + pp.Word(pp.alphanums)
     # + символы ASCII
     simb_name = "\'" + pp.Word(pp.printables)("simb")
+    # имя метки
+    label_name = pp.Combine(
+        pp.Char(pp.alphas) + pp.Optional(pp.Word(pp.alphas + pp.nums + "_")))('label')
 
     # для определения моды mmm
     modes_list = [
@@ -59,13 +75,14 @@ def recgnz_args(args: list[str]):
         ("#" + const_name).setParseAction(pp.replaceWith('2')),
         ("@#" + const_name).setParseAction(pp.replaceWith('3')),
         ("@" + const_name).setParseAction(pp.replaceWith('7')),
-        const_name.setParseAction(pp.replaceWith('6')),
         ("@-(" + register_name + ")").setParseAction(pp.replaceWith('5')),
         ("-(" + register_name + ")").setParseAction(pp.replaceWith('4')),
         ("@(" + register_name + ")+").setParseAction(pp.replaceWith('3')),
         ("(" + register_name + ")+").setParseAction(pp.replaceWith('2')),
         ("(" + register_name + ")").setParseAction(pp.replaceWith('1')),
         register_name.setParseAction(pp.replaceWith('0')),
+        label_name.setParseAction(pp.replaceWith('-')),
+        const_name.setParseAction(pp.replaceWith('6')),
     ]
 
     modes_to_search = pp.MatchFirst(modes_list)('mode')
@@ -79,61 +96,38 @@ def recgnz_args(args: list[str]):
         register_name +\
         pp.Optional(pp.Suppress(pp.Word('+)')))
 
-    const_name = pp.Suppress(pp.Optional(pp.Word('#@'))
-                             ) + pp.Word(pp.nums)("const")
-
     mode_6 = pp.Word(pp.nums)('shift') +\
         pp.Suppress("(") + register_name + pp.Suppress(")")
 
     mode_7 = pp.Suppress('@') + mode_6
 
-    names_to_search = mode_7 | mode_6 | full_reg_name | simb_name | const_name
+    label_name = pp.Combine(
+        pp.Char(pp.alphas) + pp.Optional(pp.Word(pp.alphas + pp.nums + "_")))('label')
+
+    const_name = pp.Suppress(pp.Optional(pp.Word('#@'))
+                             ) + (pp.Combine(pp.Optional('-') + pp.Word(pp.nums))("const") | label_name('variable'))
+
+    names_to_search = mode_7 | mode_6 | full_reg_name | simb_name | label_name | const_name
 
     # перебираем каждый аргумент
     for arg in args:
         val_name = names_to_search.parseString(arg).as_dict()
         val_mode = modes_to_search.parseString(arg).as_dict()
         res.append({**val_mode, **val_name})
-
     return res
-
-
-def recgnz_comm(text: str) -> str:
-    """
-    Принимает строку с именем команды
-    Возвращает для начало кодировки команды
-    :param  text: имя команды 
-        'mov'
-    :return: 
-        '0001'
-    """
-
-    comms_list = [
-        pp.Keyword(". =").setParseAction(pp.replaceWith('')),
-        pp.Regex(r"(mov) | (MOV)", flags=VERBOSE).setParseAction(
-            pp.replaceWith('0001')),
-        pp.Regex(r"(movb) | (MOVB)", flags=VERBOSE).setParseAction(
-            pp.replaceWith('1001')),
-        pp.Regex(r"(add) | (ADD)", flags=VERBOSE).setParseAction(
-            pp.replaceWith('0110')),
-        pp.Regex(r"(halt) | (HALT)", flags=VERBOSE).setParseAction(
-            pp.replaceWith('0'*16))
-    ]
-
-    comms_to_search = pp.MatchFirst(comms_list)
-
-    return comms_to_search.parse_string(text)[0]
 
 
 def code_arg(arg_dict: dict) -> str:
     """
     Принимает словарь с ключами 'mode' и 'reg'|'const'|'simb'
     Возвращает кодировку для аргумента
-    :param  arg_dict: словарь характеристик аргумента 
+    :param  arg_dict: словарь характеристик аргумента
         {'mode': ['2'], 'const': '2'}
-    :return: 
+    :return:
         '010111'
     """
+    if arg_dict.get('label') or arg_dict.get('variable'):
+        return ''
 
     spec_reg_pc = pp.Regex(r"(pc) | (PC)", flags=VERBOSE)
     spec_reg_sp = pp.Regex(r"(sp) | (SP)", flags=VERBOSE)
@@ -163,32 +157,26 @@ def recgnz_mode(arg: dict):
     Возвращает если необходимо восьмеричные данные,
     необходимые для реализации специфичной моды
     Для моды 2 регистра R7 вернет восьмеричное представление константы
-    :param  arg: словарь характеристик аргумента 
+    :param  arg: словарь характеристик аргумента
         {'mode': ['2'], 'const': '2'}
-    :return: 
+    :return:
         '000002'
     """
-    mode = int(arg['mode'][0])
-    if 'reg' in arg.keys():
-        pass
-    if 'const' in arg.keys():
-        if mode == 2:
-            return f'{int(arg['const']):016b}', True
+    if arg.get('label') or arg.get('reg'):
+        return '', False
+
+    if arg.get('const'):
+        number = int(arg['const'], 8)
+        width = 16
+        result = f'{abs(number):0{width}b}'
+
+        if number < 0:
+            number_unsigned = (1 << width) + number
+            result = f'{number_unsigned:{width}b}'
+
+        return result, True
+
+    if arg.get('variable'):
+        # Для прекомпиляции когда все переменные могут быть до конца неизвестны
+        return f'{0:016b}', True
     return '', False
-
-
-def bin_to_oct(text: str):
-    """
-    Принимает строку с двоичным 16-бит числом
-    Возвращает число, где первый символ совпадает с первоым символом text,
-    а все последующие являются восьмеричным представлением соответствующий трёх двоичных битов.
-    :param  text: 16-битная строка 
-        '0001010111000000'
-    :return: 
-        '012700'
-    """
-    if text == '':
-        return ''
-    res = text[0] + ''.join(
-        [f"{int(text[i-3:i], 2):o}" for i in range(len(text), 1, -3)])[::-1]
-    return f"{int(res):06}"
