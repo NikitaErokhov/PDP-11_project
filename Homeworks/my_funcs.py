@@ -162,11 +162,8 @@ def recgnz_mode(arg: dict):
     :return:
         '000002'
     """
-    if arg.get('label'):
+    if arg.get('label') or arg.get('reg'):
         return '', False
-    mode = int(arg['mode'][0])
-    if arg.get('reg'):
-        pass
 
     if arg.get('const'):
         number = int(arg['const'], 8)
@@ -181,5 +178,5 @@ def recgnz_mode(arg: dict):
 
     if arg.get('variable'):
         # Для прекомпиляции когда все переменные могут быть до конца неизвестны
-        return f'{0: 016b}', True
+        return f'{0:016b}', True
     return '', False
