@@ -12,26 +12,26 @@ def parse_line(text: str):
         {'name': 'mov', 'arg': ['#2', 'R0'], 'text': 'mov \t#2, R0;'}
     """
 
-    pseudo_comm_name = pp.Combine(pp.Literal(
-        ".") + pp.Suppress(pp.Optional(' ')) + (pp.Literal('=') | pp.Word(pp.alphas)))('pseudo')
+    pseudo_comm_name = pp.Combine(pp.Literal(".") + (pp.Suppress(pp.Optional(' ')) + (pp.Literal('=')) | pp.Word(pp.alphas)))('pseudo')
     
-    variable_name = pp.Word(pp.alphas)('variable')
+    variable_name = pp.Combine(pp.Char(pp.alphas) + pp.Optional(pp.Word(pp.alphas + pp.nums + "_")))('variable')
 
     variable_module = variable_name + pp.Suppress('=')
 
     command_name = variable_module| pseudo_comm_name | pp.Word(pp.alphas)('name')
 
-    label_name = pp.Word(pp.alphas)('label')+pp.Suppress(':')
+    label_name = variable_name('label')+pp.Suppress(':')
 
     argument_name = pp.Word(pp.printables, excludeChars=',;')
+
     comment_name = pp.Regex(r".+$")
 
-    full_argument_name = argument_name + \
-        pp.ZeroOrMore(pp.Suppress(',') + argument_name)
+    full_argument_name = (argument_name + \
+        pp.ZeroOrMore(pp.Suppress(',') + argument_name))
 
-    command_module = command_name +\
+    command_module = (command_name +\
         pp.Optional(full_argument_name)('arg') +\
-        pp.Optional(pp.Suppress(';'))
+        pp.Optional(pp.Suppress(';')))
 
     comment_module = comment_name('comm')
 
@@ -42,7 +42,7 @@ def parse_line(text: str):
     if not result.get('arg') and not result.get('label'):
         result['arg'] = []
 
-    result['text'] = text.strip()
+    result['text'] = text
 
     return result
 
@@ -193,3 +193,16 @@ def recgnz_mode(arg: dict):
         # Для прекомпиляции когда все переменные могут быть до конца неизвестны
         return f'{0:016b}', True
     return '', False
+
+
+def get_ascii_text(name: str, text: str):
+
+    start = text.find(name) + len(name)
+
+    same_char_string = pp.Regex(r'(.)(.*?)\1')('string')
+
+    text_to_search = text[start:]
+
+    result = same_char_string.parseString(text_to_search)
+    
+    return result[0][1:-1]

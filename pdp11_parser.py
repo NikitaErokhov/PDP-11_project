@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import click
 from my_funcs import parse_line, \
-    recognize_args, code_arg, recgnz_mode
+    recognize_args, code_arg, recgnz_mode, get_ascii_text
 
 
 @dataclass
@@ -75,7 +75,8 @@ class PDP11_Parser:
                 commands = []
                 if str_dict.get('pseudo'):
                     commands = self.code_pseudo_command(name=str_dict['pseudo'],
-                                                        args=str_dict['arg'])
+                                                        args=str_dict['arg'],
+                                                        text=str_dict['text'])
 
                 elif str_dict.get('name'):
                     commands, arguments = self.code_command(name=str_dict['name'],
@@ -260,7 +261,7 @@ class PDP11_Parser:
         code_com = code_n + code_r + code_ss + code_dd + code_nn + code_xx
         return [code_com,], parsed_args
 
-    def code_pseudo_command(self, name: str, args: dict,):
+    def code_pseudo_command(self, name: str, args: dict, text: str):
         """Разбираем псевдокоманду и выполняем ее."""
         match name:
             case '.=':
@@ -284,6 +285,21 @@ class PDP11_Parser:
                     bin_line = self.bin(number, width=8)
                     number_lines.append(bin_line)
                 return number_lines
+            case '.ASCII':
+                number_lines = []
+                string_arg = get_ascii_text(name='.ASCII', text=text)
+                for symbol in string_arg:
+                    bin_line = self.bin(ord(symbol), width=8)
+                    number_lines.append(bin_line)
+                return number_lines
+            case '.ASCIZ':
+                number_lines = []
+                string_arg = get_ascii_text(name='.ASCIZ', text=text)
+                for symbol in string_arg:
+                    bin_line = self.bin(ord(symbol), width=8)
+                    number_lines.append(bin_line)
+                number_lines.append('0'*8)
+                return number_lines
 
     def code_programm(self):
         """
@@ -296,7 +312,8 @@ class PDP11_Parser:
             current_counter = self.programm_counter
             if str_dict.get('pseudo'):
                 commands = self.code_pseudo_command(name=str_dict['pseudo'],
-                                                    args=str_dict['arg'])
+                                                    args=str_dict['arg'],
+                                                    text=str_dict['text'])
             elif str_dict.get('name'):
                 commands, arguments = self.code_command(name=str_dict['name'],
                                                         args=str_dict['arg'])

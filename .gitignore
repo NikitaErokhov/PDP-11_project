@@ -41,3 +41,5 @@ pdp11_tests/04_mode4/04_mode4.pdp.o
 pdp11_tests/07_putchar/07_putchar.pdp.l
 pdp11_tests/07_putchar/07_putchar.pdp.o
 check.sh
+pdp11_tests/08_hello/08_hello.pdp.l
+pdp11_tests/08_hello/08_hello.pdp.o
