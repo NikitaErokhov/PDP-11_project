@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import click
 from my_funcs import parse_line, \
-    recgnz_args, code_arg, recgnz_mode
+    recognize_args, code_arg, recgnz_mode
 
 
 @dataclass
@@ -25,6 +25,8 @@ COMMANDS = {
     'br': Command(name='br', opcode='00000001', has_xx=True),
     'clr': Command(name='clr', opcode='0000101000', has_dd=True),
     'beq': Command(name='beq', opcode='00000011', has_xx=True),
+    'tstb': Command(name='tstb', opcode='1000101111', has_dd=True),
+    'bpl': Command(name='bpl', opcode='10000000', has_xx=True),
 
 }
 
@@ -47,6 +49,8 @@ class PDP11_Parser:
         self.object_lines[self.curr_block] = list()
         # Словарь для меток, собранных при прекомпиляции, здесь (имя метки): [номер строки с меткой, programm_counter]
         self.labels = dict()
+        # Словарь для имен переменных, собранных при прекомпиляции, здесь (имя переменной): [значение]
+        self.variables = dict()
 
     def precompile(self, filename: str | Path):
         """
@@ -67,7 +71,6 @@ class PDP11_Parser:
                 str_dict = parse_line(file_string_)
                 # Сохранили результат для использования в code_programm
                 self.parsed_lines.append(str_dict)
-
                 # Обрабатываем команды, чтобы получить верный programm_counter
                 commands = []
                 if str_dict.get('pseudo'):
@@ -87,6 +90,10 @@ class PDP11_Parser:
                     self.labels[str_dict['label']] = {
                         "fileline_num": len(self.file_lines)-1,
                         "programm_counter": self.programm_counter}
+                    
+                if str_dict.get('variable'):
+                    self.variables[str_dict['variable']] = str_dict['arg'][0]
+                    
 
                 for comm in commands:
                     self.programm_counter += len(comm)//8
@@ -124,7 +131,6 @@ class PDP11_Parser:
 
     @classmethod
     def oct(cls, number: int,  width: int = 6):
-        # TODO: потом что-то сделать с ширирой, чтобы байты печатать
         return f"{number:0{width}o}"
 
     @classmethod
@@ -172,7 +178,7 @@ class PDP11_Parser:
         for arg in parsed_args:
             # Если в аргументе нет переменной, то он уже готов
             if arg.get('variable') is None:
-                return
+                continue
 
             if precompile:
                 value = 0
@@ -183,6 +189,12 @@ class PDP11_Parser:
             elif self.labels.get(arg['variable']):
                 value = self.labels[arg['variable']]["programm_counter"]
                 arg['const'] = str(oct(value)[2:])
+                arg.pop('variable')
+
+            # Если есть такая перeменная
+            elif self.variables.get(arg['variable']):
+                value = self.variables[arg['variable']]
+                arg['const'] = f'{int(value):06}'
                 arg.pop('variable')
 
     def code_command(self, name: str, args: list[str] | None = None, precompile: bool = False, ** kwargs):
@@ -202,11 +214,10 @@ class PDP11_Parser:
         # Получили информацию о нужной команде
         command = COMMANDS[name]
         args = args or []
-        parsed_args: list[dict] = recgnz_args(args) if args else {}
+        parsed_args: list[dict] = recognize_args(args) if args else {}
 
         # Разбираем переменные
         self.resolve_args(parsed_args, precompile)
-
         code_n = command.opcode
 
         # Инициировали кодировки аргументов
@@ -247,7 +258,6 @@ class PDP11_Parser:
                 code_xx = self.bin(N_shift//2, width=8)
         # Возможные варианты DD, SSDD, RSS, RDD, R, RNN, XX, NN или ничего
         code_com = code_n + code_r + code_ss + code_dd + code_nn + code_xx
-
         return [code_com,], parsed_args
 
     def code_pseudo_command(self, name: str, args: dict,):
@@ -296,7 +306,6 @@ class PDP11_Parser:
                         commands.append(bin_line)
             else:
                 commands = []
-
             self.listing_comm(str_dict, commands, current_counter)
             self.object_comm(commands)
 

@@ -13,19 +13,23 @@ def parse_line(text: str):
     """
 
     pseudo_comm_name = pp.Combine(pp.Literal(
-        ".") + (pp.Literal('=') | pp.Word(pp.alphas)))('pseudo')
+        ".") + pp.Suppress(pp.Optional(' ')) + (pp.Literal('=') | pp.Word(pp.alphas)))('pseudo')
+    
+    variable_name = pp.Word(pp.alphas)('variable')
 
-    command_name = pp.Word(pp.alphas) | pseudo_comm_name
+    variable_module = variable_name + pp.Suppress('=')
+
+    command_name = variable_module| pseudo_comm_name | pp.Word(pp.alphas)('name')
 
     label_name = pp.Word(pp.alphas)('label')+pp.Suppress(':')
 
-    argument_name = pp.Word(pp.alphanums + '-()@#\'+')
+    argument_name = pp.Word(pp.printables, excludeChars=',;')
     comment_name = pp.Regex(r".+$")
 
     full_argument_name = argument_name + \
         pp.ZeroOrMore(pp.Suppress(',') + argument_name)
 
-    command_module = command_name('name') +\
+    command_module = command_name +\
         pp.Optional(full_argument_name)('arg') +\
         pp.Optional(pp.Suppress(';'))
 
@@ -43,7 +47,7 @@ def parse_line(text: str):
     return result
 
 
-def recgnz_args(args: list[str]):
+def recognize_args(args: list[str]):
     """
     Принимает список имен аргументов
     Возвращает для каждого отдельного аргумента
@@ -61,7 +65,7 @@ def recgnz_args(args: list[str]):
     # константа #n
     const_name = pp.Optional('-') + pp.Word(pp.alphanums)
     # + символы ASCII
-    simb_name = "\'" + pp.Word(pp.printables)("simb")
+    symbol_name = "#\'" + pp.Word(pp.printables)("symbol")
     # имя метки
     label_name = pp.Combine(
         pp.Char(pp.alphas) + pp.Optional(pp.Word(pp.alphas + pp.nums + "_")))('label')
@@ -83,6 +87,7 @@ def recgnz_args(args: list[str]):
         register_name.setParseAction(pp.replaceWith('0')),
         label_name.setParseAction(pp.replaceWith('-')),
         const_name.setParseAction(pp.replaceWith('6')),
+        symbol_name.setParseAction(pp.replaceWith('2'))
     ]
 
     modes_to_search = pp.MatchFirst(modes_list)('mode')
@@ -106,8 +111,10 @@ def recgnz_args(args: list[str]):
 
     const_name = pp.Suppress(pp.Optional(pp.Word('#@'))
                              ) + (pp.Combine(pp.Optional('-') + pp.Word(pp.nums))("const") | label_name('variable'))
+    
+    symbol_name = "#\'" + pp.Word(pp.printables)("symbol")
 
-    names_to_search = mode_7 | mode_6 | full_reg_name | simb_name | label_name | const_name
+    names_to_search = mode_7 | mode_6 | full_reg_name | symbol_name | label_name | const_name | symbol_name
 
     # перебираем каждый аргумент
     for arg in args:
@@ -119,7 +126,7 @@ def recgnz_args(args: list[str]):
 
 def code_arg(arg_dict: dict) -> str:
     """
-    Принимает словарь с ключами 'mode' и 'reg'|'const'|'simb'
+    Принимает словарь с ключами 'mode' и 'reg'|'const'|'symbol'
     Возвращает кодировку для аргумента
     :param  arg_dict: словарь характеристик аргумента
         {'mode': ['2'], 'const': '2'}
@@ -143,9 +150,12 @@ def code_arg(arg_dict: dict) -> str:
     spec_to_search = pp.MatchFirst(spec_regs)
 
     mode_code = f"{int(arg_dict['mode'][0]):03b}"
-    if 'const' in arg_dict.keys():
+
+    if arg_dict.get("const"):
         name_code = f"{7:03b}"
-    elif 'reg' in arg_dict.keys():
+    elif arg_dict.get("symbol"):
+        name_code = f"{7:03b}"
+    elif arg_dict.get("reg"):
         name_code = f"{int(spec_to_search.parse_string(arg_dict['reg'])[0]):03b}"
 
     return mode_code + name_code
@@ -175,8 +185,11 @@ def recgnz_mode(arg: dict):
             result = f'{number_unsigned:{width}b}'
 
         return result, True
+    
+    elif arg.get('symbol'):
+        return f'{(ord(arg['symbol'])):016b}', True
 
-    if arg.get('variable'):
+    elif arg.get('variable'):
         # Для прекомпиляции когда все переменные могут быть до конца неизвестны
         return f'{0:016b}', True
     return '', False
