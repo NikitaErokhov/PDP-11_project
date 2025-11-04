@@ -43,3 +43,15 @@ pdp11_tests/07_putchar/07_putchar.pdp.o
 check.sh
 pdp11_tests/08_hello/08_hello.pdp.l
 pdp11_tests/08_hello/08_hello.pdp.o
+pdp11_tests/09_mode67/09_mode67.pdp.l
+pdp11_tests/09_mode67/09_mode67.pdp.o
+pdp11_tests/09_mode6_minus/09_mode6_minus.pdp.l
+pdp11_tests/09_mode6_minus/09_mode6_minus.pdp.o
+pdp11_tests/09_mode6_plus/09_mode6_plus.pdp.l
+pdp11_tests/09_mode6_plus/09_mode6_plus.pdp.o
+pdp11_tests/10_jsr_rts/01_jsr_rts.pdp.l
+pdp11_tests/10_jsr_rts/01_jsr_rts.pdp.o
+pdp11_tests/10_jsr_sum/10_jsr_sum.pdp.l
+pdp11_tests/10_jsr_sum/10_jsr_sum.pdp.o
+pdp11_tests/10_jsr_sum_r5/10_jsr_sum_r5.pdp.l
+pdp11_tests/10_jsr_sum_r5/10_jsr_sum_r5.pdp.o
