@@ -1,20 +1,9 @@
-Homeworks/__pycache__/
-Homeworks/__init__.py
+Lessons/
+__pycache__/
 pdp11_tests/__pycache__/
-69. Эмулятор компьютера PDP-11.pdf
-Lessons/data3.txt
-Lessons/parsing_example.ipynb
-Lessons/parsing.ipynb
-Lessons/path.md
-Lessons/pyparsing_skipTo.md
-test.py
 pdp11_tests/01_sum/01_sum.pdp.l
-.gitignore
 pdp11_tests/01_sum/01_sum.pdp.o
-.gitignore
 pdp11_tests/01_sum_mode1/01_sum_mode1.pdp.l
-Homeworks/my_classes.py
-all_compile.sh
 pdp11_tests/01_sum_mode1/01_sum_mode1.pdp.o
 pdp11_tests/01_sum_mode1_big/01_sum_mode1_big.pdp.l
 pdp11_tests/01_sum_mode1_big/01_sum_mode1_big.pdp.o
@@ -32,15 +21,12 @@ pdp11_tests/03_br_after/03_br_after.pdp.l
 pdp11_tests/03_br_after/03_br_after.pdp.o
 pdp11_tests/03_br_before/03_br_before.pdp.l
 pdp11_tests/03_br_before/03_br_before.pdp.o
-.gitignore
 pdp11_tests/03_arr0_byte/03_arr0_byte.pdp.l
 pdp11_tests/03_arr0_byte/03_arr0_byte.pdp.o
-__pycache__/my_funcs.cpython-313.pyc
 pdp11_tests/04_mode4/04_mode4.pdp.l
 pdp11_tests/04_mode4/04_mode4.pdp.o
 pdp11_tests/07_putchar/07_putchar.pdp.l
 pdp11_tests/07_putchar/07_putchar.pdp.o
-check.sh
 pdp11_tests/08_hello/08_hello.pdp.l
 pdp11_tests/08_hello/08_hello.pdp.o
 pdp11_tests/09_mode67/09_mode67.pdp.l
@@ -55,3 +41,4 @@ pdp11_tests/10_jsr_sum/10_jsr_sum.pdp.l
 pdp11_tests/10_jsr_sum/10_jsr_sum.pdp.o
 pdp11_tests/10_jsr_sum_r5/10_jsr_sum_r5.pdp.l
 pdp11_tests/10_jsr_sum_r5/10_jsr_sum_r5.pdp.o
+.gitignore
