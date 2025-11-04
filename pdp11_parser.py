@@ -16,20 +16,22 @@ class Command:
 
     print_shift: bool = False
 
-COMMANDS = {
-    'mov': Command(name='mov', opcode='0001', has_ss=True, has_dd=True),
-    'movb': Command(name='movb', opcode='1001', has_ss=True, has_dd=True),
-    'add': Command(name='add', opcode='0110', has_ss=True, has_dd=True),
-    'halt': Command(name='halt', opcode='0'*16),
-    'sob': Command(name='sob', opcode='0111111', has_nn=True, has_r=True),
-    'br': Command(name='br', opcode='00000001', has_xx=True),
-    'clr': Command(name='clr', opcode='0000101000', has_dd=True),
-    'beq': Command(name='beq', opcode='00000011', has_xx=True),
-    'tstb': Command(name='tstb', opcode='1000101111', has_dd=True),
-    'bpl': Command(name='bpl', opcode='10000000', has_xx=True),
-    'jsr': Command(name='jsr', opcode='0000100', has_r=True, has_dd=True, print_shift=True),
-    'rts': Command(name='jsr', opcode='0000000010000', has_r=True),
 
+COMMANDS = {
+    "mov": Command(name="mov", opcode="0001", has_ss=True, has_dd=True),
+    "movb": Command(name="movb", opcode="1001", has_ss=True, has_dd=True),
+    "add": Command(name="add", opcode="0110", has_ss=True, has_dd=True),
+    "halt": Command(name="halt", opcode="0" * 16),
+    "sob": Command(name="sob", opcode="0111111", has_nn=True, has_r=True),
+    "br": Command(name="br", opcode="00000001", has_xx=True),
+    "clr": Command(name="clr", opcode="0000101000", has_dd=True),
+    "beq": Command(name="beq", opcode="00000011", has_xx=True),
+    "tstb": Command(name="tstb", opcode="1000101111", has_dd=True),
+    "bpl": Command(name="bpl", opcode="10000000", has_xx=True),
+    "jsr": Command(
+        name="jsr", opcode="0000100", has_r=True, has_dd=True, print_shift=True
+    ),
+    "rts": Command(name="jsr", opcode="0000000010000", has_r=True),
 }
 
 
@@ -44,9 +46,9 @@ class PDP11_Parser:
         # Словарь для формирования .о файла, здесь (адрес блока): [байты блока по порядку]
         self.object_lines = dict()
         # PC
-        self.programm_counter = 0   # f'{:06o}'
+        self.programm_counter = 0  # f'{:06o}'
         # Адрес текущего блока
-        self.curr_block = 0         # f'{:04x}'
+        self.curr_block = 0  # f'{:04x}'
         self.object_lines[self.curr_block] = list()
         # Словарь для меток, собранных при прекомпиляции, здесь (имя метки): [номер строки с меткой, programm_counter]
         self.labels = dict()
@@ -75,33 +77,36 @@ class PDP11_Parser:
 
                 # Обрабатываем команды, чтобы получить верный programm_counter
                 commands = []
-                if str_dict.get('pseudo'):
-                    commands = self.code_pseudo_command(name=str_dict['pseudo'],
-                                                        args=str_dict['arg'],
-                                                        text=str_dict['text'])
+                if str_dict.get("pseudo"):
+                    commands = self.code_pseudo_command(
+                        name=str_dict["pseudo"],
+                        args=str_dict["arg"],
+                        text=str_dict["text"],
+                    )
 
-                elif str_dict.get('name'):
-                    commands, arguments = self.code_command(name=str_dict['name'],
-                                                            args=str_dict['arg'],
-                                                            precompile=True)
+                elif str_dict.get("name"):
+                    commands, arguments = self.code_command(
+                        name=str_dict["name"], args=str_dict["arg"], precompile=True
+                    )
                     for arg_dict in arguments:
                         bin_line, plus_PC = self.recgnz_mode(arg_dict)
                         if plus_PC:
                             commands.append(bin_line)
 
-                if str_dict.get('label'):
+                if str_dict.get("label"):
                     # Сохраняем адрес метки для дальнейшей компиляции
-                    self.labels[str_dict['label']] = {
-                        "fileline_num": len(self.file_lines)-1,
-                        "programm_counter": self.programm_counter}
-                    
-                if str_dict.get('variable'):
+                    self.labels[str_dict["label"]] = {
+                        "fileline_num": len(self.file_lines) - 1,
+                        "programm_counter": self.programm_counter,
+                    }
+
+                if str_dict.get("variable"):
                     # Сохраняем значение переменной для дальнейшей компиляции
-                    self.variables[str_dict['variable']] = str_dict['arg'][0]
+                    self.variables[str_dict["variable"]] = str_dict["arg"][0]
 
                 for comm in commands:
                     # Увеличиваем programm_counter (+2 для word, +1 для byte)
-                    self.programm_counter += len(comm)//8
+                    self.programm_counter += len(comm) // 8
 
         # После прекомпиляции зануляем PC для дальнейшей компиляции
         self.programm_counter = 0
@@ -115,8 +120,8 @@ class PDP11_Parser:
         self.precompile(filename)
         self.code_programm()
 
-        self.write_obj(filename=filename+'.o')
-        self.write_listing(filename=filename+'.l')
+        self.write_obj(filename=filename + ".o")
+        self.write_listing(filename=filename + ".l")
 
     @classmethod
     def bin(cls, number: int, width: int = 6) -> str:
@@ -131,16 +136,16 @@ class PDP11_Parser:
         :return: 11111101
         """
 
-        result = f'{abs(number):0{width}b}'
+        result = f"{abs(number):0{width}b}"
 
         if number < 0:
             number_unsigned = (1 << width) + number
-            result = f'{number_unsigned:{width}b}'
+            result = f"{number_unsigned:{width}b}"
 
         return result
 
     @classmethod
-    def oct(cls, number: int,  width: int = 6) -> str:
+    def oct(cls, number: int, width: int = 6) -> str:
         """
         Принимает десятичное число и возвращает
         строчное восьмеричное представление числа
@@ -167,8 +172,10 @@ class PDP11_Parser:
             return []
         # Для word возвращаем два байта
         if len(str_binword) == 16:
-            return [f"{int(str_binword[8:], 2):02x}\n",
-                    f'{int(str_binword[:8], 2):02x}\n']
+            return [
+                f"{int(str_binword[8:], 2):02x}\n",
+                f"{int(str_binword[:8], 2):02x}\n",
+            ]
         # Для byte возвращаем один байт
         elif len(str_binword) == 8:
             return [f"{int(str_binword[:8], 2):02x}\n"]
@@ -187,25 +194,25 @@ class PDP11_Parser:
             '012700'
         """
 
-        if text == '':
-            return ''
-        
+        if text == "":
+            return ""
+
         # Для word
         if len(text) == 16:
             res = text[0]
             for i in range(1, len(text), 3):
-                res += f"{int(text[i:i+3], 2):o}"
+                res += f"{int(text[i : i + 3], 2):o}"
             return f"{int(res):06}"
-        
+
         # Для byte
         elif len(text) == 8:
             res = f"{int(text[:2], 2):o}"
             for i in range(2, len(text), 3):
-                res += f"{int(text[i:i+3], 2):o}"
+                res += f"{int(text[i : i + 3], 2):o}"
             return f"{int(res):03}"
 
     def resolve_args(self, parsed_args: list[dict], precompile: bool = False) -> None:
-        """ Подставляет вмесло переменной её значение
+        """Подставляет вмесло переменной её значение
         :param parsed_args: список словарей, соответсвующих разобранным аргументам
         :param precompile: флаг режима прекомпиляции
         """
@@ -213,32 +220,38 @@ class PDP11_Parser:
         # Подставляем реальные значения только при компиляции
         for arg in parsed_args:
             # Если в аргументе нет переменной, то он уже готов
-            if arg.get('variable') is None:
+            if arg.get("variable") is None:
                 continue
 
             # Проверяем константы на десятичную точку
-            if arg.get('const'):
-                if arg['const'][-1] == '.':
-                    arg['const'] = oct(int(arg['const']))[2:]
+            if arg.get("const"):
+                if arg["const"][-1] == ".":
+                    arg["const"] = oct(int(arg["const"]))[2:]
 
             # В прекомпиляции на этом resolve закончен
             if precompile:
                 continue
 
             # Если есть такая метка - заменяем на её адрес
-            elif self.labels.get(arg['variable']):
-                value = self.labels[arg['variable']]["programm_counter"]
-                arg['const'] = str(oct(value)[2:])
-                if arg['mode'][0] != "6":
-                    arg.pop('variable')
+            elif self.labels.get(arg["variable"]):
+                value = self.labels[arg["variable"]]["programm_counter"]
+                arg["const"] = str(oct(value)[2:])
+                if arg["mode"][0] != "6":
+                    arg.pop("variable")
 
             # Если есть такая перeменная - заменяем на её значение
-            elif self.variables.get(arg['variable']):
-                value = self.variables[arg['variable']]
-                arg['const'] = f'{int(value):06}'
-                arg.pop('variable')
+            elif self.variables.get(arg["variable"]):
+                value = self.variables[arg["variable"]]
+                arg["const"] = f"{int(value):06}"
+                arg.pop("variable")
 
-    def code_command(self, name: str, args: list[str] | None = None, precompile: bool = False, ** kwargs) -> tuple[list[str], list[dict]]:
+    def code_command(
+        self,
+        name: str,
+        args: list[str] | None = None,
+        precompile: bool = False,
+        **kwargs,
+    ) -> tuple[list[str], list[dict]]:
         """
         Берет команду name с аргументами args.
         Возвращает список слов в виде строк, в которые они кодируются.
@@ -257,14 +270,13 @@ class PDP11_Parser:
 
         # Первично разобрали аргументы
         args = args or []
-        parsed_args: list[dict] = recognize_args(args) if args else {}\
-        
+        parsed_args: list[dict] = recognize_args(args) if args else {}
         # Вторично разобрали перемненные в аргументах
         self.resolve_args(parsed_args, precompile)
         code_n = command.opcode
 
         # Инициировали кодировки аргументов
-        code_r = code_nn = code_ss = code_dd = code_xx = ''
+        code_r = code_nn = code_ss = code_dd = code_xx = ""
 
         # Кодируем каждый тип
         if command.has_r:
@@ -275,12 +287,15 @@ class PDP11_Parser:
         if command.has_nn:
             # В режиме прекомпиляции вставляем заполнитель
             if precompile:
-                code_nn = '0'*6
+                code_nn = "0" * 6
             else:
                 # NN всегда последний
-                N_shift = self.programm_counter+2 - \
-                    self.labels[args[-1]]["programm_counter"]
-                code_nn = self.bin(N_shift//2)
+                N_shift = (
+                    self.programm_counter
+                    + 2
+                    - self.labels[args[-1]]["programm_counter"]
+                )
+                code_nn = self.bin(N_shift // 2)
 
         if command.has_dd:
             # DD всегда последний
@@ -295,12 +310,13 @@ class PDP11_Parser:
         if command.has_xx:
             # В режиме прекомпиляции вставляем заполнитель
             if precompile:
-                code_xx = '0'*8
+                code_xx = "0" * 8
             else:
                 # XX всегда одинок
-                N_shift = self.labels[args[-1]]["programm_counter"]\
-                    - (self.programm_counter + 2)
-                code_xx = self.bin(N_shift//2, width=8)
+                N_shift = self.labels[args[-1]]["programm_counter"] - (
+                    self.programm_counter + 2
+                )
+                code_xx = self.bin(N_shift // 2, width=8)
 
         # Некоторым командам необходимо дополнительно записать Сдвиг по метке,
         # Но этот сдвиг обусловнен не модой, а спецификой команды
@@ -308,21 +324,24 @@ class PDP11_Parser:
         # Но при этом ничего не печатаем
         # Поэтому печать сдвига обрабатываем отдельно
         if command.print_shift:
-
-            mode = '2'
+            mode = "2"
 
             # В режиме прекомпиляции вставляем заполнитель
             if precompile:
-                parsed_args.append({'const': '0', 'mode': mode})
-            else:    
-                shift = self.labels[args[-1]]["programm_counter"] - (self.programm_counter + 4)
-                
-                parsed_args.append({'const': self.oct(shift), 'mode': mode})
+                parsed_args.append({"const": "0", "mode": mode})
+            else:
+                shift = self.labels[args[-1]]["programm_counter"] - (
+                    self.programm_counter + 4
+                )
+
+                parsed_args.append({"const": self.oct(shift), "mode": mode})
 
         # Возможные варианты DD, SSDD, RSS, RDD, R, RNN, XX, NN или ничего
         code_com = code_n + code_r + code_ss + code_dd + code_nn + code_xx
 
-        return [code_com,], parsed_args
+        return [
+            code_com,
+        ], parsed_args
 
     def code_pseudo_command(self, name: str, args: dict, text: str) -> list[str]:
         """
@@ -334,53 +353,53 @@ class PDP11_Parser:
             ['1000']
         :param text: текст строки с командой
             '.= 1000'
-        :return: 
+        :return:
             []
         """
         match name:
-            case '.=':
+            case ".=":
                 address = int(args[0], 8)
                 self.programm_counter = address
                 self.curr_block = address
                 self.object_lines[address] = list()
                 return []
-            
-            case '.WORD':
+
+            case ".WORD":
                 number_lines = []
                 for arg in args:
                     number = int(arg, 8)
                     bin_line = self.bin(number, width=16)
                     number_lines.append(bin_line)
                 return number_lines
-            
-            case '.BYTE':
+
+            case ".BYTE":
                 number_lines = []
                 for arg in args:
                     number = int(arg, 8)
                     bin_line = self.bin(number, width=8)
                     number_lines.append(bin_line)
                 return number_lines
-            
-            case '.ASCII':
+
+            case ".ASCII":
                 number_lines = []
                 # Выделяем из text аргумент
-                string_arg = get_ascii_text(name='.ASCII', text=text)
+                string_arg = get_ascii_text(name=".ASCII", text=text)
                 # Кодируем посимвольно
                 for symbol in string_arg:
                     bin_line = self.bin(ord(symbol), width=8)
                     number_lines.append(bin_line)
                 return number_lines
-            
-            case '.ASCIZ':
+
+            case ".ASCIZ":
                 number_lines = []
                 # Выделяем из text аргумент
-                string_arg = get_ascii_text(name='.ASCIZ', text=text)
+                string_arg = get_ascii_text(name=".ASCIZ", text=text)
                 # Кодируем посимвольно
                 for symbol in string_arg:
                     bin_line = self.bin(ord(symbol), width=8)
                     number_lines.append(bin_line)
                 # Специфика .ASCIZ - в конце добавляем нуль
-                number_lines.append('0'*8)
+                number_lines.append("0" * 8)
                 return number_lines
 
     def recgnz_mode(self, arg: dict, current_counter: int = 0) -> tuple[str, bool]:
@@ -398,42 +417,41 @@ class PDP11_Parser:
         """
 
         # Заполитель для режима прекомпиляции
-        if arg.get('variable') and arg['mode'][0]!='6':
-            return '0'*16, True
-        
-        if arg.get('reg') or arg.get('variable'):
+        if arg.get("variable") and arg["mode"][0] != "6":
+            return "0" * 16, True
+
+        if arg.get("reg") or arg.get("variable"):
             # Обрабатываем сдвиг
             if arg.get("shift"):
-                shift = int(arg['shift'], 8)
+                shift = int(arg["shift"], 8)
                 width = 16
                 result = abs(shift)
                 if shift < 0:
                     result = (1 << width) + shift
-                return f'{result:0{width}b}', True
-            return '', False
-        
+                return f"{result:0{width}b}", True
+            return "", False
 
-        mode = arg['mode'][0]
+        mode = arg["mode"][0]
 
-        if arg.get('const'):
-            number = int(arg['const'], 8)
+        if arg.get("const"):
+            number = int(arg["const"], 8)
             width = 16
             result = abs(number)
             if number < 0:
                 result = (1 << width) + number
 
             # Обрабатываем сдвиг для шестой моды
-            if mode == '6':
+            if mode == "6":
                 result = result - (current_counter)
                 if result < 0:
                     result = (1 << width) + result
-            return f'{result:0{width}b}', True
-        
+            return f"{result:0{width}b}", True
+
         # Обрабатываем символы ASCII
-        if arg.get('symbol'):
-            return f'{(ord(arg['symbol'])):016b}', True
-        
-        return '', False
+        if arg.get("symbol"):
+            return f"{(ord(arg['symbol'])):016b}", True
+
+        return "", False
 
     def code_programm(self) -> None:
         """
@@ -442,20 +460,21 @@ class PDP11_Parser:
         for str_dict in self.parsed_lines:
             # Нужно зафиксировать programm_counter до его возможного изменения в code_pseudo_command
             current_counter = self.programm_counter
-            if str_dict.get('pseudo'):
-                commands = self.code_pseudo_command(name=str_dict['pseudo'],
-                                                    args=str_dict['arg'],
-                                                    text=str_dict['text'])
-            elif str_dict.get('name'):
-                commands, arguments = self.code_command(name=str_dict['name'],
-                                                        args=str_dict['arg'])
-                
+            if str_dict.get("pseudo"):
+                commands = self.code_pseudo_command(
+                    name=str_dict["pseudo"], args=str_dict["arg"], text=str_dict["text"]
+                )
+            elif str_dict.get("name"):
+                commands, arguments = self.code_command(
+                    name=str_dict["name"], args=str_dict["arg"]
+                )
+
                 # Сохраняем programm_counter команды для разбора аргументов и их мод
-                argument_counter = current_counter+2
+                argument_counter = current_counter + 2
                 for arg_dict in arguments:
-                    bin_line, plus_PC = self.recgnz_mode(arg_dict, argument_counter+2)
+                    bin_line, plus_PC = self.recgnz_mode(arg_dict, argument_counter + 2)
                     if plus_PC:
-                        argument_counter+=2
+                        argument_counter += 2
                         commands.append(bin_line)
             else:
                 commands = []
@@ -463,7 +482,9 @@ class PDP11_Parser:
             self.listing_comm(str_dict, commands, current_counter)
             self.object_comm(commands)
 
-    def listing_comm(self, str_dict: dict, commands: list[str], current_counter: int) -> None:
+    def listing_comm(
+        self, str_dict: dict, commands: list[str], current_counter: int
+    ) -> None:
         """
         Из словаря, который описывает строку делает 1+ строк листинга
         :param str_dict:
@@ -478,11 +499,10 @@ class PDP11_Parser:
             012700
             000002
         """
-        if str_dict['text'] != '':
+        if str_dict["text"] != "":
             # В каком адресе лежит какая команда
-            self.lines.append(self.oct(current_counter) + ':\t\t' +
-                              str_dict['text'])
-            
+            self.lines.append(self.oct(current_counter) + ":\t\t" + str_dict["text"])
+
         # Печатаем байты "лесенкой"
         tabulation_for_byte = 0
         for cmd in commands:
@@ -491,11 +511,11 @@ class PDP11_Parser:
                 self.lines.append(f"\t\t{self.bin2oct(cmd)}")
             else:
                 self.lines.append(f"\t{self.bin2oct(cmd)}")
-            self.programm_counter += len(cmd)//8
+            self.programm_counter += len(cmd) // 8
 
     def object_comm(self, commands: list[str]) -> None:
         """
-        Из списка слов или байт делает код для объектного файла 
+        Из списка слов или байт делает код для объектного файла
         :param commands:
             ['']
             ['012700', '000002']
@@ -517,8 +537,8 @@ class PDP11_Parser:
         :param filename: имя файла-исходника
             '01_sum.pdp'
         """
-        with open(Path.cwd() / filename, mode='w') as file:
-            file.write('\n'.join(self.lines))
+        with open(Path.cwd() / filename, mode="w") as file:
+            file.write("\n".join(self.lines))
 
     def write_obj(self, filename: str | Path) -> None:
         """
@@ -526,16 +546,15 @@ class PDP11_Parser:
         :param filename: имя файла-исходника
             '01_sum.pdp'
         """
-        with open(Path.cwd() / filename, mode='w') as file:
+        with open(Path.cwd() / filename, mode="w") as file:
             for block_address, block_bytes in self.object_lines.items():
                 if len(block_bytes) != 0:
-                    file.write(f"{block_address:x}" + ' ' +
-                               f'{len(block_bytes):04x}\n')
-                    file.write(''.join(block_bytes))
+                    file.write(f"{block_address:x}" + " " + f"{len(block_bytes):04x}\n")
+                    file.write("".join(block_bytes))
 
 
 @click.command()
-@click.argument('filename')
+@click.argument("filename")
 def compile_programm(filename: str | Path):
     p = PDP11_Parser()
     p.compile(filename)
