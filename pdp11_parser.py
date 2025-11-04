@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 import click
-from my_funcs import parse_line, recognize_args, code_arg, get_ascii_text
+from funcs import parse_line, recognize_args, code_arg, get_ascii_text
 
 
 @dataclass
