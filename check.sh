@@ -2,6 +2,7 @@
 
 testdir=pdp11_tests
 pushd $testdir
+echo
 pwd
 for dirname in `(ls)`; do
   echo "dirname=$dirname";

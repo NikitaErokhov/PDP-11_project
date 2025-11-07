@@ -69,14 +69,16 @@ def recognize_args(args: list[str]) -> list[dict]:
     register_name = pp.Regex(
         r"""(([rR]+[0-7]))|(pc) | (PC)|(sp) | (SP)""", flags=VERBOSE
     )
-    # Константы
-    const_var_name = pp.Optional("-") + pp.Word(pp.alphanums)
     # Символы ASCII
-    symbol_name = "#'" + pp.Word(pp.printables)
+    symbol_name = "'" + pp.Word(pp.printables)
+    # Константы
+    const_name = pp.Optional("-") + pp.Word(pp.nums) + pp.Optional(".")
     # Переменные и/или метки
     variable_name = pp.Combine(
         pp.Char(pp.alphas) + pp.Optional(pp.Word(pp.alphas + pp.nums + "_"))
     )
+    # Общий модуль для констант
+    const_var_name = symbol_name | const_name | variable_name
     # Сдвиги
     shift_name = pp.Combine(pp.Optional("-") + pp.Word(pp.nums))
 
@@ -95,9 +97,7 @@ def recognize_args(args: list[str]) -> list[dict]:
         ("(" + register_name + ")+").setParseAction(pp.replaceWith("2")),
         ("(" + register_name + ")").setParseAction(pp.replaceWith("1")),
         register_name.setParseAction(pp.replaceWith("0")),
-        variable_name.setParseAction(pp.replaceWith("6")),
         const_var_name.setParseAction(pp.replaceWith("6")),
-        symbol_name.setParseAction(pp.replaceWith("2")),
     ]
 
     modes_to_search = pp.MatchFirst(modes_list)("mode")
@@ -118,19 +118,20 @@ def recognize_args(args: list[str]) -> list[dict]:
 
     mode_7 = pp.Suppress("@") + mode_6
 
+    # Символы ASCII
+    symbol_name = "'" + pp.Word(pp.printables)("symbol")
+    # Константы
+    const_name = pp.Combine(pp.Optional("-") + pp.Word(pp.nums) + pp.Optional("."))
+    # Переменные и/или метки
     variable_name = pp.Combine(
         pp.Char(pp.alphas) + pp.Optional(pp.Word(pp.alphas + pp.nums + "_"))
-    )("variable")
-
-    const_var_name = pp.Suppress(pp.Optional(pp.Word("#@"))) + (
-        pp.Combine(pp.Optional("-") + pp.Word(pp.nums))("const") | variable_name
+    )
+    # Общий модуль для констант
+    const_var_name = pp.Suppress(pp.Optional("@") + pp.Optional("#")) + (
+        symbol_name | const_name("const") | variable_name("variable")
     )
 
-    symbol_name = "#'" + pp.Char(pp.printables)("symbol")
-
-    names_to_search = (
-        mode_7 | mode_6 | full_reg_name | symbol_name | const_var_name | symbol_name
-    )
+    names_to_search = mode_7 | mode_6 | full_reg_name | const_var_name
 
     # Перебираем аргументы из args
     for arg in args:
@@ -163,14 +164,11 @@ def code_arg(arg_dict: dict) -> str:
         spec_reg_pc.setParseAction(pp.replaceWith("7")),
         register_name,
     ]
-
     spec_to_search = pp.MatchFirst(spec_regs)
 
     mode_code = f"{int(arg_dict['mode'][0]):03b}"
 
-    if arg_dict.get("const"):
-        name_code = f"{7:03b}"
-    elif arg_dict.get("symbol"):
+    if arg_dict.get("const") or arg_dict.get("symbol"):
         name_code = f"{7:03b}"
     elif arg_dict.get("reg"):
         name_code = f"{int(spec_to_search.parse_string(arg_dict['reg'])[0]):03b}"

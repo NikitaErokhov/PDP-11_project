@@ -219,14 +219,19 @@ class PDP11_Parser:
 
         # Подставляем реальные значения только при компиляции
         for arg in parsed_args:
-            # Если в аргументе нет переменной, то он уже готов
-            if arg.get("variable") is None:
-                continue
-
             # Проверяем константы на десятичную точку
             if arg.get("const"):
                 if arg["const"][-1] == ".":
                     arg["const"] = oct(int(arg["const"]))[2:]
+
+            # Обрабатываем символы ASCII
+            if arg.get("symbol"):
+                arg["const"] = oct(ord(arg["symbol"]))[2:]
+                arg.pop("symbol")
+
+            # Если в аргументе нет переменной, то он уже готов
+            if arg.get("variable") is None:
+                continue
 
             # В прекомпиляции на этом resolve закончен
             if precompile:
@@ -356,6 +361,7 @@ class PDP11_Parser:
         :return:
             []
         """
+
         match name:
             case ".=":
                 address = int(args[0], 8)
@@ -364,42 +370,31 @@ class PDP11_Parser:
                 self.object_lines[address] = list()
                 return []
 
-            case ".WORD":
+            case ".WORD" | ".BYTE":
                 number_lines = []
                 for arg in args:
-                    number = int(arg, 8)
-                    bin_line = self.bin(number, width=16)
+                    arg_ = arg
+                    if arg[-1] == ".":
+                        arg_ = oct(int(arg))[2:]
+                    elif arg[0] == "'":
+                        arg_ = oct(ord(arg))[2:]
+                    number = int(arg_, 8)
+                    width_ = 16 if name==".WORD" else 8
+                    bin_line = self.bin(number, width=width_)
                     number_lines.append(bin_line)
                 return number_lines
 
-            case ".BYTE":
-                number_lines = []
-                for arg in args:
-                    number = int(arg, 8)
-                    bin_line = self.bin(number, width=8)
-                    number_lines.append(bin_line)
-                return number_lines
-
-            case ".ASCII":
+            case ".ASCII" | ".ASCIZ":
                 number_lines = []
                 # Выделяем из text аргумент
-                string_arg = get_ascii_text(name=".ASCII", text=text)
-                # Кодируем посимвольно
-                for symbol in string_arg:
-                    bin_line = self.bin(ord(symbol), width=8)
-                    number_lines.append(bin_line)
-                return number_lines
-
-            case ".ASCIZ":
-                number_lines = []
-                # Выделяем из text аргумент
-                string_arg = get_ascii_text(name=".ASCIZ", text=text)
+                string_arg = get_ascii_text(name=name, text=text)
                 # Кодируем посимвольно
                 for symbol in string_arg:
                     bin_line = self.bin(ord(symbol), width=8)
                     number_lines.append(bin_line)
                 # Специфика .ASCIZ - в конце добавляем нуль
-                number_lines.append("0" * 8)
+                if name == ".ASCIZ" :
+                    number_lines.append("0" * 8)
                 return number_lines
 
     def recgnz_mode(self, arg: dict, current_counter: int = 0) -> tuple[str, bool]:
@@ -415,7 +410,6 @@ class PDP11_Parser:
         :return:
             '000002'
         """
-
         # Заполитель для режима прекомпиляции
         if arg.get("variable") and arg["mode"][0] != "6":
             return "0" * 16, True
@@ -446,10 +440,6 @@ class PDP11_Parser:
                 if result < 0:
                     result = (1 << width) + result
             return f"{result:0{width}b}", True
-
-        # Обрабатываем символы ASCII
-        if arg.get("symbol"):
-            return f"{(ord(arg['symbol'])):016b}", True
 
         return "", False
 

@@ -2,6 +2,7 @@
 
 testdir=pdp11_tests
 pushd $testdir
+echo
 pwd
 for dirname in `(ls)`; do
   echo "dirname=$dirname";
@@ -9,8 +10,8 @@ for dirname in `(ls)`; do
   pdpfilename=`basename $pdpfilename`
   echo "pdpfilename=$pdpfilename"
 
-  echo "PYTHON pdp11_parser.py pdp11_tests/$dirname/${pdpfilename}"
-  python ../pdp11_parser.py ../pdp11_tests/$dirname/${pdpfilename}
+  echo "PYTHON pdp11_compiler.py pdp11_tests/$dirname/${pdpfilename}"
+  python ../pdp11_compiler.py ../pdp11_tests/$dirname/${pdpfilename}
 
   echo ""
   echo ""
